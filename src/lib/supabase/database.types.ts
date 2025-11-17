@@ -49,7 +49,8 @@ export interface Database {
 			[_ in never]: never;
 		};
 		Enums: {
-			[_ in never]: never;
+			user_status: 'pending' | 'suspended' | 'approved';
+			user_type: 'unassigned' | 'merchant' | 'holder' | 'management';
 		};
 	};
 }

@@ -38,11 +38,8 @@ export const actions: Actions = {
 
 		// Check user status and redirect accordingly
 		if (data.user) {
-			const { data: userData } = await supabase
-				.from('users')
-				.select('status')
-				.eq('id', data.user.id)
-				.single();
+			const query = supabase.from('users').select('status');
+			const { data: userData } = await (query as any).eq('id', data.user.id).single();
 
 			if (userData?.status === 'suspended') {
 				throw redirect(303, '/suspended');

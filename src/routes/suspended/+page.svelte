@@ -14,7 +14,7 @@
 	let isLoading = $state(false);
 
 	// Generate reference ID from user initials and random number
-	const referenceId = `${data.user.initials}-${Math.floor(Math.random() * 1000000)}`;
+	const referenceId = $derived(`${data.user.initials}-${Math.floor(Math.random() * 1000000)}`);
 </script>
 
 <div class="p-4 md:p-6 lg:p-8">

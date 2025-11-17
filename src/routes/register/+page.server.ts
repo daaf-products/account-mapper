@@ -45,7 +45,7 @@ export const actions: Actions = {
 		}
 
 		// Sign up user with Supabase Auth
-		// The trigger will automatically create the user record in public.users
+		// Email confirmation is disabled in Supabase dashboard
 		const { data, error } = await supabase.auth.signUp({
 			email,
 			password,
@@ -53,8 +53,7 @@ export const actions: Actions = {
 				data: {
 					full_name: fullName,
 					phone_number: phoneNumber || null
-				},
-				emailRedirectTo: undefined // No email confirmation needed
+				}
 			}
 		});
 
@@ -76,15 +75,40 @@ export const actions: Actions = {
 			});
 		}
 
-		// The database trigger should have created the user record
-		// But we'll verify and update initials if needed
-		const { error: updateError } = await supabase
-			.from('users')
-			.update({ initials })
-			.eq('id', data.user.id);
+		// Wait a moment for the trigger to create the user record
+		await new Promise((resolve) => setTimeout(resolve, 500));
 
-		if (updateError) {
-			console.error('Error updating initials:', updateError);
+		// Check if user record was created by trigger
+		const userId = data.user.id;
+		const query = supabase.from('users').select('id');
+		const { data: existingUser, error: checkError } = await (query as any)
+			.eq('id', userId)
+			.single();
+
+		// If user record doesn't exist, create it manually (fallback)
+		if (!existingUser || checkError) {
+			const { error: insertError } = await supabase.from('users').insert({
+				id: userId,
+				email: data.user.email || email,
+				full_name: fullName,
+				phone_number: phoneNumber || null,
+				initials,
+				type: 'unassigned' as const,
+				status: 'pending' as const
+			} as any);
+
+			if (insertError) {
+				return fail(500, {
+					error: `Database error saving new user: ${insertError.message}`,
+					email,
+					fullName,
+					phoneNumber
+				});
+			}
+		} else {
+			// User record exists, update initials if needed
+			const updateQuery = supabase.from('users').update({ initials } as any);
+			await (updateQuery as any).eq('id', userId);
 		}
 
 		// Sign in the user immediately (no email confirmation)

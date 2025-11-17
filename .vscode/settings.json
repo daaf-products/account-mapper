@@ -3,11 +3,18 @@
 		"Afroze",
 		"afrze",
 		"DAAF",
+		"ENOTFOUND",
 		"ieedan",
 		"neoconfetti",
+		"plpgsql",
+		"schemaname",
 		"shadcn",
 		"Shadecn",
 		"Supabase",
+		"tablename",
+		"TIMESTAMPTZ",
+		"typname",
+		"Unmapping",
 		"vercel",
 		"Vite"
 	]

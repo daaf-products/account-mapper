@@ -132,16 +132,6 @@
 					</p>
 				</div>
 			</div>
-
-			<!-- Support Link -->
-			<div class="text-center">
-				<p class="text-sm text-muted-foreground">
-					Have questions?
-					<a href="/support" class="font-medium text-primary hover:underline"
-						>Contact our support team</a
-					>
-				</p>
-			</div>
 		</div>
 	</div>
 </div>

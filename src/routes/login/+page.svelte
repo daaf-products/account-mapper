@@ -12,6 +12,7 @@
 	import type { ZodError } from 'zod';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
+	import { page } from '$app/stores';
 	import type { ActionData } from './$types';
 
 	let { data }: { data: ActionData } = $props();
@@ -28,6 +29,16 @@
 		if (data?.error) {
 			toast.error('Login failed', {
 				description: data.error
+			});
+		}
+	});
+
+	// Handle password reset success
+	$effect(() => {
+		const reset = $page.url.searchParams.get('reset');
+		if (reset === 'success') {
+			toast.success('Password reset successful!', {
+				description: 'You can now sign in with your new password'
 			});
 		}
 	});
@@ -157,7 +168,7 @@
 						<Checkbox id="remember" bind:checked={rememberMe} disabled={isLoading} />
 						<Label for="remember" class="cursor-pointer font-normal">Remember me</Label>
 					</div>
-					<a href="/forgot-password" class="text-sm text-primary hover:underline">
+					<a href={resolve('/forgot-password')} class="text-sm text-primary hover:underline">
 						Forgot password?
 					</a>
 				</div>
