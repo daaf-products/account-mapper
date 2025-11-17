@@ -1,11 +1,13 @@
 <script lang="ts">
 	import * as Card from '$lib/components/ui/card';
 	import { Button } from '$lib/components/ui/button';
+	import * as Empty from '$lib/components/ui/empty';
 	import WalletIcon from '@lucide/svelte/icons/wallet';
 	import UsersIcon from '@lucide/svelte/icons/users';
 	import ArrowUpRightIcon from '@lucide/svelte/icons/arrow-up-right';
 	import * as Chart from '$lib/components/ui/chart/index.js';
 	import ClockIcon from '@lucide/svelte/icons/clock';
+	import UserCheckIcon from '@lucide/svelte/icons/user-check';
 	import type { PageData } from './$types';
 	import { PieChart } from 'layerchart';
 
@@ -14,7 +16,7 @@
 	// Mock data - will be replaced with real data later
 	const metrics = {
 		totalAccounts: 85,
-		pendingUsers: 3,
+		pendingUsers: data.pendingUsers?.length || 0,
 		mappingRequests: 3
 	};
 
@@ -24,20 +26,14 @@
 		{ name: 'Parked', value: 12, percentage: 14.1, color: 'hsl(43, 96%, 56%)' }
 	];
 
-	const pendingUsers = [
-		{ name: 'Sarah Johnson', email: 'sarah.j@company.com', time: '2 hours ago', type: 'Merchant' },
-		{ name: 'Michael Chen', email: 'michael.c@company.com', time: '5 hours ago', type: 'Holder' },
-		{ name: 'Emily Davis', email: 'emily.d@company.com', time: '1 day ago', type: 'Merchant' },
-		{ name: 'James Wilson', email: 'james.w@company.com', time: '1 day ago', type: 'Holder' },
-		{ name: 'Olivia Martinez', email: 'olivia.m@company.com', time: '2 days ago', type: 'Merchant' },
-		{ name: 'David Thompson', email: 'david.t@company.com', time: '2 days ago', type: 'Holder' },
-		{ name: 'Sophia Anderson', email: 'sophia.a@company.com', time: '3 days ago', type: 'Merchant' },
-		{ name: 'Robert Taylor', email: 'robert.t@company.com', time: '3 days ago', type: 'Holder' },
-		{ name: 'Isabella Brown', email: 'isabella.b@company.com', time: '4 days ago', type: 'Merchant' },
-		{ name: 'William Garcia', email: 'william.g@company.com', time: '4 days ago', type: 'Holder' },
-		{ name: 'Charlotte Lee', email: 'charlotte.l@company.com', time: '5 days ago', type: 'Merchant' },
-		{ name: 'Daniel White', email: 'daniel.w@company.com', time: '5 days ago', type: 'Holder' }
-	];
+	const pendingUsers = data.pendingUsers || [];
+
+	// Debug: Log to see what we're getting
+	$effect(() => {
+		console.log('Pending users from data:', data.pendingUsers);
+		console.log('Pending users array:', pendingUsers);
+		console.log('Pending users length:', pendingUsers.length);
+	});
 
 	const mappingRequests = [
 		{ company: 'Tech Solutions Ltd', time: '1 hour ago', account: '****4521' },
@@ -185,29 +181,43 @@
 				</Button>
 			</Card.Header>
 			<Card.Content>
-				<div class="max-h-[250px] space-y-0 overflow-y-auto">
-					{#each pendingUsers as user}
-						<div
-							class="flex items-center justify-between border-b border-border px-4 py-4 last:border-0 bg-background"
-						>
-							<div class="flex-1 min-w-0">
-								<p class="font-medium text-foreground">{user.name}</p>
-								<p class="text-sm text-muted-foreground">{user.email}</p>
-								<div class="mt-1 flex items-center gap-2">
-									<ClockIcon class="size-3 text-muted-foreground" />
-									<span class="text-xs text-muted-foreground">{user.time}</span>
+				{#if pendingUsers.length > 0}
+					<div class="max-h-[250px] space-y-0 overflow-y-auto">
+						{#each pendingUsers as user}
+							<div
+								class="flex items-center justify-between border-b border-border px-4 py-4 last:border-0 bg-background"
+							>
+								<div class="flex-1 min-w-0">
+									<p class="font-medium text-foreground">{user.name}</p>
+									<p class="text-sm text-muted-foreground">{user.email}</p>
+									<div class="mt-1 flex items-center gap-2">
+										<ClockIcon class="size-3 text-muted-foreground" />
+										<span class="text-xs text-muted-foreground">{user.time}</span>
+									</div>
+								</div>
+								<div class="ml-4 shrink-0">
+									<span
+										class="rounded-md bg-amber-500/20 px-2.5 py-1 text-xs font-medium text-amber-400"
+									>
+										Unassigned
+									</span>
 								</div>
 							</div>
-							<div class="ml-4 shrink-0">
-								<span
-									class="rounded-md bg-amber-500/20 px-2.5 py-1 text-xs font-medium text-amber-400"
-								>
-									Unassigned
-								</span>
-							</div>
-						</div>
-					{/each}
-				</div>
+						{/each}
+					</div>
+				{:else}
+					<Empty.Root>
+						<Empty.Header>
+							<Empty.Media>
+								<UserCheckIcon class="size-8 text-muted-foreground" />
+							</Empty.Media>
+							<Empty.Title>No pending approvals</Empty.Title>
+							<Empty.Description>
+								All user registrations have been processed. New registrations will appear here.
+							</Empty.Description>
+						</Empty.Header>
+					</Empty.Root>
+				{/if}
 			</Card.Content>
 		</Card.Root>
 
