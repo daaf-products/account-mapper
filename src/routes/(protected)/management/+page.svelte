@@ -1,0 +1,225 @@
+<script lang="ts">
+	import * as Card from '$lib/components/ui/card';
+	import WalletIcon from '@lucide/svelte/icons/wallet';
+	import UsersIcon from '@lucide/svelte/icons/users';
+	import ArrowUpRightIcon from '@lucide/svelte/icons/arrow-up-right';
+	import * as Chart from "$lib/components/ui/chart/index.js";
+	import ClockIcon from '@lucide/svelte/icons/clock';
+	import type { PageData } from './$types';
+	import { PieChart } from "layerchart";
+
+	let { data }: { data: PageData } = $props();
+
+	// Mock data - will be replaced with real data later
+	const metrics = {
+		totalAccounts: 85,
+		pendingUsers: 3,
+		mappingRequests: 3
+	};
+
+	const accountDistribution = [
+		{ name: 'Mapped', value: 45, percentage: 52.9, color: 'hsl(173, 80%, 40%)' },
+		{ name: 'Unmapped', value: 28, percentage: 32.9, color: 'hsl(199, 89%, 48%)' },
+		{ name: 'Parked', value: 12, percentage: 14.1, color: 'hsl(43, 96%, 56%)' }
+	];
+
+	const pendingUsers = [
+		{ name: 'Sarah Johnson', email: 'sarah.j@company.com', time: '2 hours ago', type: 'Merchant' },
+		{ name: 'Michael Chen', email: 'michael.c@company.com', time: '5 hours ago', type: 'Holder' },
+		{ name: 'Emily Davis', email: 'emily.d@company.com', time: '1 day ago', type: 'Merchant' }
+	];
+
+	const mappingRequests = [
+		{ company: 'Tech Solutions Ltd', time: '1 hour ago', account: '****4521' },
+		{ company: 'Global Traders Inc', time: '3 hours ago', account: '****7832' },
+		{ company: 'Digital Services Co', time: '5 hours ago', account: '****9201' }
+	];
+
+	// Calculate donut chart segments
+	const total = accountDistribution.reduce((sum, item) => sum + item.value, 0);
+	const circumference = 2 * Math.PI * 40; // radius = 40
+
+	function getOffset(index: number) {
+		let offset = 0;
+		for (let i = 0; i < index; i++) {
+			offset += (accountDistribution[i].value / total) * circumference;
+		}
+		return offset;
+	}
+
+	function getDashArray(value: number) {
+		const percentage = value / total;
+		return `${(percentage * circumference).toFixed(2)} ${circumference.toFixed(2)}`;
+	}
+</script>
+
+<div class="p-4 md:p-6 lg:p-8">
+	<!-- Page Header -->
+	<div class="mb-6">
+		<h1 class="text-3xl font-bold text-foreground">Dashboard</h1>
+		<p class="text-sm text-muted-foreground">Overview of bank accounts and pending requests</p>
+	</div>
+
+	<!-- Metric Cards -->
+	<div class="mb-8 grid gap-4 md:grid-cols-3">
+		<Card.Root>
+			<Card.Content class="flex items-center justify-between p-6">
+				<div class="flex-1">
+					<p class="mb-1 text-sm font-medium text-muted-foreground">TOTAL ACCOUNTS</p>
+					<p class="text-3xl font-bold text-foreground">{metrics.totalAccounts}</p>
+				</div>
+				<div class="ml-4 rounded-lg bg-cyan-500/25 p-3">
+					<WalletIcon class="size-6 text-cyan-300" />
+				</div>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root>
+			<Card.Content class="flex items-center justify-between p-6">
+				<div class="flex-1">
+					<p class="mb-1 text-sm font-medium text-muted-foreground">PENDING USERS</p>
+					<p class="text-3xl font-bold text-foreground">{metrics.pendingUsers}</p>
+				</div>
+				<div class="ml-4 rounded-lg bg-yellow-500/25 p-3">
+					<UsersIcon class="size-6 text-yellow-300" />
+				</div>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root>
+			<Card.Content class="flex items-center justify-between p-6">
+				<div class="flex-1">
+					<p class="mb-1 text-sm font-medium text-muted-foreground">MAPPING REQUESTS</p>
+					<p class="text-3xl font-bold text-foreground">{metrics.mappingRequests}</p>
+				</div>
+				<div class="ml-4 rounded-lg bg-green-500/25 p-3">
+					<ArrowUpRightIcon class="size-6 text-green-300" />
+				</div>
+			</Card.Content>
+		</Card.Root>
+	</div>
+
+	<!-- Bank Account Distribution -->
+	<Card.Root class="mb-6">
+		<Card.Header>
+			<Card.Title>Bank Account Distribution</Card.Title>
+			<Card.Description>Overview of account mapping status</Card.Description>
+		</Card.Header>
+		<Card.Content>
+			<div class="flex flex-col items-center gap-10 md:flex-row md:items-start">
+				<!-- Donut Chart -->
+				<div class="relative flex size-72 items-center justify-center">
+					<svg class="size-full -rotate-90 transform" viewBox="0 0 100 100">
+						<!-- Background circle -->
+						<circle
+							cx="50"
+							cy="50"
+							r="40"
+							fill="none"
+							stroke="hsl(var(--muted))"
+							stroke-width="8"
+						/>
+						<!-- Segments -->
+						{#each accountDistribution as item, index}
+							<circle
+								cx="50"
+								cy="50"
+								r="40"
+								fill="none"
+								stroke={item.color}
+								stroke-width="8"
+								stroke-dasharray={getDashArray(item.value)}
+								stroke-dashoffset={-getOffset(index)}
+								stroke-linecap="round"
+								class="transition-all"
+							/>
+						{/each}
+					</svg>
+					<!-- Center text -->
+					<div class="absolute text-center">
+						<p class="text-2xl font-bold text-foreground">{total}</p>
+						<p class="text-xs font-medium text-muted-foreground">Total</p>
+					</div>
+				</div>
+
+				<!-- Legend -->
+				<div class="flex-1 space-y-3">
+					{#each accountDistribution as item}
+						<div class="flex items-center justify-between rounded-lg border border-border bg-background p-4">
+							<div class="flex items-center gap-3">
+								<div
+									class="size-4 rounded"
+									style="background-color: {item.color}"
+								></div>
+								<span class="text-sm font-medium text-foreground">{item.name}</span>
+							</div>
+							<div class="rounded-md px-3 py-1.5 text-right">
+								<p class="text-lg font-semibold text-foreground">{item.value}</p>
+								<p class="text-xs text-muted-foreground">{item.percentage}%</p>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</div>
+		</Card.Content>
+	</Card.Root>
+
+	<!-- Two Column Layout for Bottom Sections -->
+	<div class="grid gap-6 md:grid-cols-2">
+		<!-- Pending User Approvals -->
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>Pending User Approvals</Card.Title>
+				<Card.Description>New registrations awaiting approval</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<div class="space-y-4">
+					{#each pendingUsers as user}
+						<div class="flex items-center justify-between border-b border-border pb-4 last:border-0 last:pb-0">
+							<div class="flex-1">
+								<p class="font-medium text-foreground">{user.name}</p>
+								<p class="text-sm text-muted-foreground">{user.email}</p>
+								<div class="mt-1 flex items-center gap-2">
+									<ClockIcon class="size-3 text-muted-foreground" />
+									<span class="text-xs text-muted-foreground">{user.time}</span>
+								</div>
+							</div>
+							<div class="ml-4">
+								<span
+									class="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+								>
+									{user.type}
+								</span>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</Card.Content>
+		</Card.Root>
+
+		<!-- Account Mapping Requests -->
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>Account Mapping Requests</Card.Title>
+				<Card.Description>Merchant requests to map bank accounts</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<div class="space-y-4">
+					{#each mappingRequests as request}
+						<div class="flex items-center justify-between border-b border-border pb-4 last:border-0 last:pb-0">
+							<div class="flex-1">
+								<p class="font-medium text-foreground">{request.company}</p>
+								<p class="text-sm text-muted-foreground">Account: {request.account}</p>
+								<div class="mt-1 flex items-center gap-2">
+									<ClockIcon class="size-3 text-muted-foreground" />
+									<span class="text-xs text-muted-foreground">{request.time}</span>
+								</div>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</Card.Content>
+		</Card.Root>
+	</div>
+</div>
+
