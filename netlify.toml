@@ -2,12 +2,11 @@
 # SvelteKit application with Supabase integration
 
 [build]
-  command = "npm ci && npm run build"
+  command = "npm ci && NODE_ENV=production npm run build"
   publish = ".svelte-kit/netlify"
 
 [build.environment]
   NODE_VERSION = "20"
-  NODE_ENV = "production"
 
 # Serverless functions configuration
 [functions]
