@@ -2,11 +2,15 @@
 # SvelteKit application with Supabase integration
 
 [build]
+
   command = "unset NODE_ENV && npm install && NODE_ENV=production npm run build"
   publish = ".svelte-kit/netlify"
 
 [build.environment]
   NODE_VERSION = "20"
+  # These are PUBLIC variables (safe to expose in client bundle)
+  # Netlify secrets scanner should ignore them
+  SECRETS_SCAN_OMIT_KEYS = "PUBLIC_SUPABASE_ANON_KEY,PUBLIC_SUPABASE_URL"
 
 # Serverless functions configuration
 [functions]
