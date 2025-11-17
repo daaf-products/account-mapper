@@ -102,8 +102,7 @@ export const actions: Actions = {
 			});
 		}
 
-		// Redirect to home page
-		throw redirect(303, '/');
+		// New users are always pending, so redirect to pending page
+		throw redirect(303, '/pending');
 	}
 };
-

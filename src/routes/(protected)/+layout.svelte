@@ -1,8 +1,5 @@
 <script lang="ts">
-	import type { LayoutData } from './$types';
-
-	let { data, children }: { data: LayoutData; children: any } = $props();
+	let { children }: { children: import('svelte').Snippet } = $props();
 </script>
 
 {@render children()}
-

@@ -17,10 +17,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 			.eq('id', user.id)
 			.single();
 
-		if (userData && !error) {
-			event.locals.user = userData;
-		} else {
+		if (error || !userData) {
 			event.locals.user = null;
+		} else {
+			// Type assertion needed due to Supabase type inference limitations
+			event.locals.user = userData as App.Locals['user'];
 		}
 	} else {
 		event.locals.user = null;
@@ -32,4 +33,3 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	});
 };
-

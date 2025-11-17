@@ -36,7 +36,7 @@ export const actions: Actions = {
 			});
 		}
 
-		// Check if user is suspended
+		// Check user status and redirect accordingly
 		if (data.user) {
 			const { data: userData } = await supabase
 				.from('users')
@@ -45,11 +45,10 @@ export const actions: Actions = {
 				.single();
 
 			if (userData?.status === 'suspended') {
-				await supabase.auth.signOut();
-				return fail(403, {
-					error: 'Your account has been suspended. Please contact support.',
-					email
-				});
+				throw redirect(303, '/suspended');
+			}
+			if (userData?.status === 'pending') {
+				throw redirect(303, '/pending');
 			}
 		}
 
@@ -58,4 +57,3 @@ export const actions: Actions = {
 		throw redirect(303, redirectTo);
 	}
 };
-

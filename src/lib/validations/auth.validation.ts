@@ -29,11 +29,11 @@ export const registerSchema = z
 				message: 'Full name can only contain letters, spaces, hyphens, and apostrophes'
 			}),
 		email: z
-		.string()
-		.min(1, 'Email is required')
-		.regex(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, {
-			message: 'Please enter a valid email address'
-		}),
+			.string()
+			.min(1, 'Email is required')
+			.regex(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, {
+				message: 'Please enter a valid email address'
+			}),
 		phoneNumber: z
 			.string()
 			.nullable()

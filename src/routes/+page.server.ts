@@ -8,6 +8,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 		throw redirect(303, '/login');
 	}
 
+	// Redirect based on user status
+	if (locals.user.status === 'pending') {
+		throw redirect(303, '/pending');
+	}
+	if (locals.user.status === 'suspended') {
+		throw redirect(303, '/suspended');
+	}
+
 	return {
 		user: locals.user
 	};
@@ -20,4 +28,3 @@ export const actions: Actions = {
 		throw redirect(303, '/login');
 	}
 };
-

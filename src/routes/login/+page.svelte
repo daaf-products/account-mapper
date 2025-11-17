@@ -11,9 +11,10 @@
 	import { loginSchema, type LoginFormData } from '$lib/validations/auth.validation';
 	import type { ZodError } from 'zod';
 	import { enhance } from '$app/forms';
+	import { resolve } from '$app/paths';
 	import type { ActionData } from './$types';
 
-	let { form, data }: { form: any; data: ActionData } = $props();
+	let { data }: { data: ActionData } = $props();
 
 	let email = $state(data?.email || '');
 	let password = $state('');
@@ -77,7 +78,7 @@
 			<form
 				method="POST"
 				action="?/login"
-				use:enhance={({ formData }) => {
+				use:enhance={() => {
 					isLoading = true;
 					return async ({ result, update }) => {
 						isLoading = false;
@@ -172,7 +173,7 @@
 
 				<p class="text-center text-sm text-muted-foreground">
 					Don't have an account?
-					<a href="/register" class="text-primary hover:underline">Create one</a>
+					<a href={resolve('/register')} class="text-primary hover:underline">Create one</a>
 				</p>
 			</form>
 		</Card.Content>

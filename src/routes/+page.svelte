@@ -42,10 +42,10 @@
 	<!-- Main content -->
 	<div class="flex items-center justify-center">
 		<div class="text-center">
-			<h2 class="text-2xl font-bold mb-2">Dashboard</h2>
+			<h2 class="mb-2 text-2xl font-bold">Dashboard</h2>
 			<p class="text-muted-foreground">Your account mapping solution</p>
 			<div class="mt-6 rounded-lg border border-border bg-card p-6 text-left">
-				<h3 class="font-semibold mb-2">User Information</h3>
+				<h3 class="mb-2 font-semibold">User Information</h3>
 				<div class="space-y-1 text-sm">
 					<p><span class="text-muted-foreground">Full Name:</span> {data.user.full_name}</p>
 					<p><span class="text-muted-foreground">Initials:</span> {data.user.initials}</p>

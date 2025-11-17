@@ -12,9 +12,10 @@
 	import { registerSchema, type RegisterFormData } from '$lib/validations/auth.validation';
 	import type { ZodError } from 'zod';
 	import { enhance } from '$app/forms';
+	import { resolve } from '$app/paths';
 	import type { ActionData } from './$types';
 
-	let { form, data }: { form: any; data: ActionData } = $props();
+	let { data }: { data: ActionData } = $props();
 
 	let fullName = $state(data?.fullName || '');
 	let email = $state(data?.email || '');
@@ -85,7 +86,7 @@
 			<form
 				method="POST"
 				action="?/register"
-				use:enhance={({ formData }) => {
+				use:enhance={() => {
 					isLoading = true;
 					return async ({ result, update }) => {
 						isLoading = false;
@@ -248,7 +249,7 @@
 
 				<p class="text-center text-sm text-muted-foreground">
 					Already have an account?
-					<a href="/login" class="text-primary hover:underline">Sign in</a>
+					<a href={resolve('/login')} class="text-primary hover:underline">Sign in</a>
 				</p>
 			</form>
 		</Card.Content>
