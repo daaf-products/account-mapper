@@ -2,11 +2,12 @@
 # SvelteKit application with Supabase integration
 
 [build]
-  command = "npm run build"
+  command = "npm install && npm run build"
   publish = ".svelte-kit/netlify"
 
 [build.environment]
   NODE_VERSION = "20"
+  NPM_FLAGS = "--legacy-peer-deps"
 
 # SPA-like routing - handle all routes
 [[redirects]]
