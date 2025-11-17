@@ -2,7 +2,12 @@ import { z } from 'zod';
 
 // Login validation schema
 export const loginSchema = z.object({
-	email: z.string().min(1, 'Email is required').email('Please enter a valid email address'),
+	email: z
+		.string()
+		.min(1, 'Email is required')
+		.regex(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, {
+			message: 'Please enter a valid email address'
+		}),
 	password: z
 		.string()
 		.min(1, 'Password is required')
@@ -18,13 +23,17 @@ export const registerSchema = z
 		fullName: z
 			.string()
 			.min(1, 'Full name is required')
-			.min(2, 'Full name must be at least 2 characters')
+			.min(3, 'Full name must be at least 3 characters')
 			.max(100, 'Full name must not exceed 100 characters')
-			.regex(
-				/^[a-zA-Z\s'-]+$/,
-				'Full name can only contain letters, spaces, hyphens, and apostrophes'
-			),
-		email: z.string().min(1, 'Email is required').email('Please enter a valid email address'),
+			.regex(/^[a-zA-Z\s'-]+$/, {
+				message: 'Full name can only contain letters, spaces, hyphens, and apostrophes'
+			}),
+		email: z
+		.string()
+		.min(1, 'Email is required')
+		.regex(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, {
+			message: 'Please enter a valid email address'
+		}),
 		phoneNumber: z
 			.string()
 			.nullable()
@@ -48,10 +57,10 @@ export const registerSchema = z
 			.min(1, 'Password is required')
 			.min(8, 'Password must be at least 8 characters')
 			.max(100, 'Password must not exceed 100 characters')
-			.regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-			.regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-			.regex(/[0-9]/, 'Password must contain at least one number')
-			.regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
+			.regex(/[A-Z]/, { message: 'Password must contain at least one uppercase letter' })
+			.regex(/[a-z]/, { message: 'Password must contain at least one lowercase letter' })
+			.regex(/[0-9]/, { message: 'Password must contain at least one number' })
+			.regex(/[^A-Za-z0-9]/, { message: 'Password must contain at least one special character' }),
 		confirmPassword: z.string().min(1, 'Please confirm your password'),
 		agreeToTerms: z.boolean().refine((val) => val === true, {
 			message: 'You must agree to the terms and conditions'

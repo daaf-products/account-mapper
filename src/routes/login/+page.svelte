@@ -10,21 +10,32 @@
 	import { toast } from 'svelte-sonner';
 	import { loginSchema, type LoginFormData } from '$lib/validations/auth.validation';
 	import type { ZodError } from 'zod';
+	import { enhance } from '$app/forms';
+	import type { ActionData } from './$types';
 
-	let email = $state('');
+	let { form, data }: { form: any; data: ActionData } = $props();
+
+	let email = $state(data?.email || '');
 	let password = $state('');
 	let rememberMe = $state(true);
 	let showPassword = $state(false);
 	let isLoading = $state(false);
 	let errors = $state<Partial<Record<keyof LoginFormData, string>>>({});
 
+	// Handle server-side errors
+	$effect(() => {
+		if (data?.error) {
+			toast.error('Login failed', {
+				description: data.error
+			});
+		}
+	});
+
 	function clearError(field: keyof LoginFormData) {
 		errors[field] = undefined;
 	}
 
-	async function handleSubmit(e: Event) {
-		e.preventDefault();
-
+	function handleSubmit(e: Event) {
 		// Clear previous errors
 		errors = {};
 
@@ -35,32 +46,11 @@
 			rememberMe
 		};
 
-		// Validate form data
+		// Validate form data client-side
 		try {
-			const validatedData = loginSchema.parse(formData);
-
-			// Set loading state
-			isLoading = true;
-
-			// Simulate API call
-			await new Promise((resolve) => setTimeout(resolve, 2000));
-
-			// Log validated data
-			console.log('Login Form Data:', validatedData);
-
-			// Show success toast
-			toast.success('Login successful!', {
-				description: 'Welcome back! Redirecting...'
-			});
-
-			// Reset loading state
-			isLoading = false;
-
-			// Here you would typically redirect to dashboard
-			// goto('/dashboard');
+			loginSchema.parse(formData);
 		} catch (error) {
-			isLoading = false;
-
+			e.preventDefault();
 			if (error instanceof Error && error.name === 'ZodError') {
 				const zodError = error as ZodError;
 				zodError.issues.forEach((issue) => {
@@ -70,10 +60,6 @@
 
 				toast.error('Validation failed', {
 					description: 'Please check the form for errors'
-				});
-			} else {
-				toast.error('Login failed', {
-					description: 'An unexpected error occurred. Please try again.'
 				});
 			}
 		}
@@ -88,11 +74,36 @@
 		</Card.Header>
 
 		<Card.Content>
-			<form onsubmit={handleSubmit} class="space-y-4">
+			<form
+				method="POST"
+				action="?/login"
+				use:enhance={({ formData }) => {
+					isLoading = true;
+					return async ({ result, update }) => {
+						isLoading = false;
+						if (result.type === 'redirect') {
+							toast.success('Login successful!', {
+								description: 'Welcome back!...'
+							});
+						} else if (result.type === 'failure' && result.data) {
+							const errorMessage = result.data.error;
+							if (errorMessage && typeof errorMessage === 'string') {
+								toast.error('Login failed', {
+									description: errorMessage
+								});
+							}
+						}
+						await update();
+					};
+				}}
+				onsubmit={handleSubmit}
+				class="space-y-4"
+			>
 				<div class="space-y-2">
 					<Label for="email">Email</Label>
 					<Input
 						id="email"
+						name="email"
 						type="email"
 						placeholder="your.email@company.com"
 						bind:value={email}
@@ -111,6 +122,7 @@
 					<div class="relative">
 						<Input
 							id="password"
+							name="password"
 							type={showPassword ? 'text' : 'password'}
 							placeholder="Enter your password"
 							bind:value={password}

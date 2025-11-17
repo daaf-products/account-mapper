@@ -1,0 +1,131 @@
+---
+alwaysApply: false
+---
+# Business Logic — Account Mapper
+Authoritative product rules for Cursor to apply across features. No UI or implementation details here; only behavior and invariants.
+
+## Entities & Enums
+- **User**: { id, email, type, status, … }
+  - `type ∈ { management, holder, merchant, unassigned }`
+  - `status ∈ { pending, approved, suspended }`
+- **BankAccount**: { id, owner_user_id, bank_name, account_name, account_number, ifsc_or_swift, …, status, is_listed, auto_approval }
+  - `status ∈ { listed, assigned, blocked, on_hold }`  (domain-specific, separate from User.status)
+- **OwnershipApplication**: { id, merchant_id, account_id, status, created_at }
+  - `status ∈ { pending, approved, rejected }`
+- **MerchantAccount** (mapping): { account_id, merchant_id, mapped_at } (one row means mapped)
+  - Invariant: **one BankAccount maps to at most one Merchant at a time**
+- **Notification**: { id, user_id, type, payload, created_at, read_at? }
+  - `type` examples: `user_created`, `user_approved`, `user_suspended`, `mapping_requested`, `mapping_approved`, `mapping_rejected`, `account_listed`, `account_unmapped`, `apk_required`
+
+## Global Invariants
+1. New users: `status=pending`, `type=unassigned`.
+2. Only **management** can change any user’s `type` or `status`.
+3. **Suspended** users cannot perform any write or privileged read; they can sign in only to see suspension info.
+4. Masking:
+   - **When not mapped to a merchant**, show masked bank fields to merchants:
+     - `account_number`: mask full except last 4 (e.g., `•••• •••• •••• 1234`)
+     - `account_name`: mask middle (e.g., `A**** B****`)
+     - `ifsc_or_swift`: show prefix only (e.g., `HDFC0*****`)
+   - **When mapped**, merchant sees full unmasked fields for mapped accounts only.
+5. A **merchant** may have many mapped accounts; an **account** may map to **≤1** merchant at a time.
+6. Rate limit: a merchant can have **≤5 pending** ownership applications at once (hard cap).
+7. Listing visibility:
+   - `BankAccount.status=listed` → visible in merchant market (masked).
+   - `on_hold` or `blocked` → hidden from merchant market.
+8. Auto-approval (per account): if `auto_approval=true`, a new application for that account is automatically approved and mapping created—still logged and notified.
+
+## User Lifecycle
+- **Creation**: On user sign-up → `type=unassigned`, `status=pending`.  
+  Emit notifications to all management: `user_created`.
+- **Approval** (management only):
+  - Set `status=approved` and assign `type ∈ { management | holder | merchant }`.
+  - Notify the user: `user_approved` (payload includes assigned type).
+- **Suspension** (management only):
+  - Set `status=suspended`.  
+  - Auto-effects: invalidate any pending applications by that user (reject with reason `user_suspended`), and revoke account mappings initiated by a suspended merchant if policy requires (explicitly chosen by management per incident).
+  - Notify the user: `user_suspended`.
+
+## Role Capabilities
+### Management
+- Change any user’s `type` and `status`.
+- Create, edit, list, block/unblock, hold/unhold bank accounts.
+- Toggle `is_listed` and `auto_approval` for a bank account.
+- Manually map/unmap bank accounts to/from merchants.
+- Review and decide on ownership applications (approve/reject).
+- View all data unmasked.
+- Trigger APK notice to a holder after their account becomes mapped: notification `apk_required`.
+
+### Holder
+- Create and manage **their own** bank accounts.
+- Mark an account as **listed** (masked to merchants) or **on_hold/blocked** (hidden).
+- See mapping state of their accounts; cannot map/unmap directly.
+- Receive `mapping_approved`/`mapping_rejected` notifications and `apk_required` when first mapped.
+
+### Merchant
+- Browse **listed** bank accounts (masked fields).
+- Create ownership applications (limit: **≤5 pending** total across accounts).
+- See statuses of their applications.
+- After approval (mapped), see **unmasked** details **only** for mapped accounts.
+- May request unmap via management (management decides).
+
+## Mapping Workflow
+1. **Merchant requests mapping**:
+   - Preconditions: merchant `status=approved`, `<5` pending applications.
+   - Effects: create `OwnershipApplication(status=pending)`; notify management `mapping_requested`.
+2. **Decision (management)**:
+   - **Approve**:
+     - If account is already mapped → reject with reason `already_mapped`.
+     - Else: create `MerchantAccount(account_id, merchant_id)`, set `BankAccount.status=assigned`, set `is_listed=false`.
+     - Notify merchant `mapping_approved` and holder `mapping_approved`.
+     - If this is the holder’s first mapping for that account, also notify holder `apk_required`.
+   - **Reject**:
+     - Set application `status=rejected` with reason.
+     - Notify merchant `mapping_rejected`.
+3. **Unmap (management)**:
+   - Delete `MerchantAccount` row.
+   - Set `BankAccount.status` to one of `{listed | on_hold | blocked}` (explicit choice required).
+   - If `listed`, set `is_listed=true`; else `is_listed=false`.
+   - Notify merchant and holder `account_unmapped`.
+
+## Masking Rules (exact)
+- `account_number`: display last 4, mask the rest with `•` and spacing preserved.
+- `account_name`: show first letter of each word + mask the remaining chars (e.g., `R***** F******`).
+- `ifsc_or_swift`: show first 5 chars, mask the remainder.
+- Never expose masked originals in attributes, data-* props, logs, or analytics.
+
+## Notifications (minimum set)
+- `user_created` → management (payload: new_user_id, email).
+- `user_approved` → user (payload: type, approved_by).
+- `user_suspended` → user (payload: reason?).
+- `mapping_requested` → management (payload: merchant_id, account_id).
+- `mapping_approved` → merchant & holder (payload: account_id, merchant_id).
+- `mapping_rejected` → merchant (payload: account_id, reason).
+- `account_unmapped` → merchant & holder (payload: account_id).
+- `apk_required` → holder (payload: account_id, signed_url expires_at).
+
+## Constraints & Guards
+- Merchant cannot apply for the **same account** more than once while an application is `pending`.
+- Merchant cannot apply for an account that is `blocked` or `assigned`.
+- Holder cannot list (`is_listed=true`) an account while `status=blocked`.
+- Management-only: changing user `type`/`status`, account `status`, manual map/unmap, toggling `auto_approval`.
+- All writes are atomic per operation. Partial failures must roll back.
+- Audit trail required for: user approvals/suspensions, mapping decisions, manual map/unmap, account status changes.
+
+## Empty/Edge States
+- If no listed accounts exist, merchants see a clear empty state (no actions beyond filters).
+- If a merchant hits the 5 pending cap, return a domain error: `pending_limit_reached`.
+- If a management user tries to approve an app for an already-mapped account, reject with `already_mapped`.
+- If a holder deletes an account that is `assigned`, block deletion; require unmap first.
+
+## Success Criteria (feature-agnostic)
+- All role and status checks enforced consistently.
+- Masking never leaks via UI props, caches, or logs.
+- Notification fan-out is correct, idempotent when retried.
+- Pending→Approved and Unassigned→{management|merchant|holder} paths are recorded with actor and timestamp.
+- Merchant pending cap is enforced at creation-time and race-safe.
+
+## Glossary
+- **Listed**: account visible in merchant market with masked fields.
+- **Assigned**: account mapped to a merchant; visible unmasked to that merchant only.
+- **On Hold**: temporarily hidden from market; not mapped.
+- **Blocked**: hidden everywhere except management; cannot receive applications.

@@ -11,10 +11,14 @@
 	import { toast } from 'svelte-sonner';
 	import { registerSchema, type RegisterFormData } from '$lib/validations/auth.validation';
 	import type { ZodError } from 'zod';
+	import { enhance } from '$app/forms';
+	import type { ActionData } from './$types';
 
-	let fullName = $state('');
-	let email = $state('');
-	let phoneNumber = $state<string | null>(null);
+	let { form, data }: { form: any; data: ActionData } = $props();
+
+	let fullName = $state(data?.fullName || '');
+	let email = $state(data?.email || '');
+	let phoneNumber = $state<string | null>(data?.phoneNumber || null);
 	let password = $state('');
 	let confirmPassword = $state('');
 	let agreeToTerms = $state(true);
@@ -23,13 +27,20 @@
 	let isLoading = $state(false);
 	let errors = $state<Partial<Record<keyof RegisterFormData, string>>>({});
 
+	// Handle server-side errors
+	$effect(() => {
+		if (data?.error) {
+			toast.error('Registration failed', {
+				description: data.error
+			});
+		}
+	});
+
 	function clearError(field: keyof RegisterFormData) {
 		errors[field] = undefined;
 	}
 
-	async function handleSubmit(e: Event) {
-		e.preventDefault();
-
+	function handleSubmit(e: Event) {
 		// Clear previous errors
 		errors = {};
 
@@ -43,32 +54,11 @@
 			agreeToTerms
 		};
 
-		// Validate form data
+		// Validate form data client-side
 		try {
-			const validatedData = registerSchema.parse(formData);
-
-			// Set loading state
-			isLoading = true;
-
-			// Simulate API call
-			await new Promise((resolve) => setTimeout(resolve, 2500));
-
-			// Log validated data
-			console.log('Register Form Data:', validatedData);
-
-			// Show success toast
-			toast.success('Account created successfully!', {
-				description: 'Welcome! You can now sign in.'
-			});
-
-			// Reset loading state
-			isLoading = false;
-
-			// Here you would typically redirect to login or dashboard
-			// goto('/login');
+			registerSchema.parse(formData);
 		} catch (error) {
-			isLoading = false;
-
+			e.preventDefault();
 			if (error instanceof Error && error.name === 'ZodError') {
 				const zodError = error as ZodError;
 				zodError.issues.forEach((issue) => {
@@ -78,10 +68,6 @@
 
 				toast.error('Validation failed', {
 					description: 'Please check the form for errors'
-				});
-			} else {
-				toast.error('Registration failed', {
-					description: 'An unexpected error occurred. Please try again.'
 				});
 			}
 		}
@@ -96,11 +82,36 @@
 		</Card.Header>
 
 		<Card.Content>
-			<form onsubmit={handleSubmit} class="space-y-4">
+			<form
+				method="POST"
+				action="?/register"
+				use:enhance={({ formData }) => {
+					isLoading = true;
+					return async ({ result, update }) => {
+						isLoading = false;
+						if (result.type === 'redirect') {
+							toast.success('Account created successfully!', {
+								description: 'Welcome!...'
+							});
+						} else if (result.type === 'failure' && result.data) {
+							const errorMessage = result.data.error;
+							if (errorMessage && typeof errorMessage === 'string') {
+								toast.error('Registration failed', {
+									description: errorMessage
+								});
+							}
+						}
+						await update();
+					};
+				}}
+				onsubmit={handleSubmit}
+				class="space-y-4"
+			>
 				<div class="space-y-2">
 					<Label for="fullName">Full Name</Label>
 					<Input
 						id="fullName"
+						name="fullName"
 						type="text"
 						placeholder="John Doe"
 						bind:value={fullName}
@@ -118,6 +129,7 @@
 					<Label for="email">Work Email</Label>
 					<Input
 						id="email"
+						name="email"
 						type="email"
 						placeholder="your.email@company.com"
 						bind:value={email}
@@ -134,7 +146,7 @@
 				<div class="space-y-2">
 					<Label for="phone">Phone Number</Label>
 					<PhoneInput
-						name="phone"
+						name="phoneNumber"
 						placeholder="Enter a phone number"
 						defaultCountry="US"
 						bind:value={phoneNumber}
@@ -150,6 +162,7 @@
 					<div class="relative">
 						<Input
 							id="password"
+							name="password"
 							type={showPassword ? 'text' : 'password'}
 							placeholder="Create a strong password"
 							bind:value={password}
@@ -183,6 +196,7 @@
 					<div class="relative">
 						<Input
 							id="confirmPassword"
+							name="confirmPassword"
 							type={showConfirmPassword ? 'text' : 'password'}
 							placeholder="Re-enter your password"
 							bind:value={confirmPassword}
