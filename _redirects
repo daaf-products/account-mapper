@@ -1,6 +1,0 @@
-# Netlify Redirects
-# This file handles SPA routing for SvelteKit
-
-# SPA fallback - serve all routes through SvelteKit
-/*    /index.html   200
-
