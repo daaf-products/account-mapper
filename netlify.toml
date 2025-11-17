@@ -9,12 +9,6 @@
   NODE_VERSION = "20"
   NODE_ENV = "production"
 
-# SPA-like routing - handle all routes
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
 # Serverless functions configuration
 [functions]
   node_bundler = "esbuild"
