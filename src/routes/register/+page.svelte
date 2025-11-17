@@ -152,7 +152,7 @@
 					<PhoneInput
 						name="phoneNumber"
 						placeholder="Enter a phone number"
-						defaultCountry="US"
+						defaultCountry="IN"
 						bind:value={phoneNumber}
 						disabled={isLoading}
 					/>
