@@ -2,7 +2,7 @@
 # SvelteKit application with Supabase integration
 
 [build]
-  command = "npm install && NODE_ENV=production npm run build"
+  command = "unset NODE_ENV && npm install && NODE_ENV=production npm run build"
   publish = ".svelte-kit/netlify"
 
 [build.environment]
