@@ -2,6 +2,8 @@
 	import * as Card from '$lib/components/ui/card';
 	import { Button } from '$lib/components/ui/button';
 	import * as Empty from '$lib/components/ui/empty';
+	import * as Dialog from '$lib/components/ui/dialog';
+	import { Spinner } from '$lib/components/ui/spinner';
 	import WalletIcon from '@lucide/svelte/icons/wallet';
 	import UsersIcon from '@lucide/svelte/icons/users';
 	import ArrowUpRightIcon from '@lucide/svelte/icons/arrow-up-right';
@@ -10,8 +12,100 @@
 	import UserCheckIcon from '@lucide/svelte/icons/user-check';
 	import type { PageData } from './$types';
 	import { PieChart } from 'layerchart';
+	import { invalidateAll } from '$app/navigation';
+	import { toast } from 'svelte-sonner';
+
+	type PendingUser = {
+		id: string;
+		email: string;
+		fullName: string;
+		type: string;
+		status: string;
+		createdAt: string;
+		timeAgo: string;
+	};
 
 	let { data }: { data: PageData } = $props();
+
+	// Dialog state for editing pending users
+	let editDialogOpen = $state(false);
+	let selectedUser: PendingUser | null = $state(null);
+	let editingStatus = $state('');
+	let editingType = $state('');
+	let isSaving = $state(false);
+
+	// Filter options
+	const statusOptions = [
+		{ value: 'approved', label: 'Approved' },
+		{ value: 'pending', label: 'Pending' },
+		{ value: 'suspended', label: 'Suspended' }
+	];
+
+	const typeOptions = [
+		{ value: 'management', label: 'Management' },
+		{ value: 'merchant', label: 'Merchant' },
+		{ value: 'holder', label: 'Holder' },
+		{ value: 'unassigned', label: 'Unassigned' }
+	];
+
+	// Open user details dialog
+	function openUserDialog(user: PendingUser) {
+		selectedUser = user;
+		editingStatus = user.status;
+		editingType = user.type;
+		editDialogOpen = true;
+	}
+
+	// Close dialog
+	function closeEditDialog() {
+		editDialogOpen = false;
+		selectedUser = null;
+		editingStatus = '';
+		editingType = '';
+	}
+
+	// Save user changes
+	async function saveUser() {
+		if (!selectedUser) return;
+
+		isSaving = true;
+		try {
+			const response = await fetch('/api/users/update', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					userId: selectedUser.id,
+					status: editingStatus,
+					type: editingType
+				})
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to update user');
+			}
+
+			toast.success('User updated successfully');
+			closeEditDialog();
+			await invalidateAll(); // Refresh data
+		} catch (error) {
+			console.error('Error updating user:', error);
+			toast.error('Failed to update user');
+		} finally {
+			isSaving = false;
+		}
+	}
+
+	// Format date helper
+	function formatDate(dateString: string): string {
+		const date = new Date(dateString);
+		return date.toLocaleDateString('en-US', {
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric'
+		});
+	}
 
 	// Mock data - will be replaced with real data later
 	const metrics = {
@@ -29,11 +123,11 @@
 	const pendingUsers = data.pendingUsers || [];
 
 	// Debug: Log to see what we're getting
-	$effect(() => {
-		console.log('Pending users from data:', data.pendingUsers);
-		console.log('Pending users array:', pendingUsers);
-		console.log('Pending users length:', pendingUsers.length);
-	});
+	// $effect(() => {
+	// 	console.log('Pending users from data:', data.pendingUsers);
+	// 	console.log('Pending users array:', pendingUsers);
+	// 	console.log('Pending users length:', pendingUsers.length);
+	// });
 
 	const mappingRequests = [
 		{ company: 'Tech Solutions Ltd', time: '1 hour ago', account: '****4521' },
@@ -184,15 +278,17 @@
 				{#if pendingUsers.length > 0}
 					<div class="max-h-[250px] space-y-0 overflow-y-auto">
 						{#each pendingUsers as user}
-							<div
-								class="flex items-center justify-between border-b border-border px-4 py-4 last:border-0 bg-background"
+							<button
+								type="button"
+								class="flex w-full items-center justify-between border-b border-border px-4 py-4 last:border-0 bg-background hover:bg-accent/50 transition-colors cursor-pointer text-left"
+								onclick={() => openUserDialog(user)}
 							>
 								<div class="flex-1 min-w-0">
-									<p class="font-medium text-foreground">{user.name}</p>
+									<p class="font-medium text-foreground">{user.fullName}</p>
 									<p class="text-sm text-muted-foreground">{user.email}</p>
 									<div class="mt-1 flex items-center gap-2">
 										<ClockIcon class="size-3 text-muted-foreground" />
-										<span class="text-xs text-muted-foreground">{user.time}</span>
+										<span class="text-xs text-muted-foreground">{user.timeAgo}</span>
 									</div>
 								</div>
 								<div class="ml-4 shrink-0">
@@ -202,7 +298,7 @@
 										Unassigned
 									</span>
 								</div>
-							</div>
+							</button>
 						{/each}
 					</div>
 				{:else}
@@ -258,4 +354,99 @@
 			</Card.Content>
 		</Card.Root>
 	</div>
+
+	<!-- Edit User Dialog -->
+	<Dialog.Root bind:open={editDialogOpen}>
+		<Dialog.Content class="max-w-md">
+			<Dialog.Header>
+				<Dialog.Title>User Details</Dialog.Title>
+				<Dialog.Description>View and edit user information</Dialog.Description>
+			</Dialog.Header>
+
+			{#if selectedUser}
+				<div class="space-y-4 py-4">
+					<!-- User Info -->
+					<div class="space-y-3">
+						<div>
+							<div class="text-sm font-medium text-muted-foreground">Full Name</div>
+							<div class="mt-1 text-base text-foreground">{selectedUser.fullName}</div>
+						</div>
+
+						<div>
+							<div class="text-sm font-medium text-muted-foreground">Email</div>
+							<div class="mt-1 text-base text-foreground">{selectedUser.email}</div>
+						</div>
+
+						<div>
+							<div class="text-sm font-medium text-muted-foreground">User ID</div>
+							<div class="mt-1 font-mono text-xs text-muted-foreground">{selectedUser.id}</div>
+						</div>
+
+						<div>
+							<div class="text-sm font-medium text-muted-foreground">Joined Date</div>
+							<div class="mt-1 text-sm text-foreground">{formatDate(selectedUser.createdAt)}</div>
+						</div>
+					</div>
+
+					<div class="border-t pt-4">
+						<h4 class="mb-3 text-sm font-semibold">Actions</h4>
+
+						<!-- Status Selection -->
+						<div class="mb-3">
+							<div class="text-sm font-medium text-muted-foreground">Status</div>
+							<div class="mt-2 flex gap-2">
+								{#each statusOptions as option}
+									<button
+										type="button"
+										class="flex-1 rounded-md border px-3 py-2 text-sm transition-colors {editingStatus ===
+										option.value
+											? 'border-primary bg-primary text-primary-foreground'
+											: 'border-input bg-background hover:bg-accent'}"
+										onclick={() => (editingStatus = option.value)}
+									>
+										{option.label}
+									</button>
+								{/each}
+							</div>
+						</div>
+
+						<!-- Type Selection -->
+						<div>
+							<div class="text-sm font-medium text-muted-foreground">User Type</div>
+							<div class="mt-2 grid grid-cols-2 gap-2">
+								{#each typeOptions as option}
+									<button
+										type="button"
+										class="rounded-md border px-3 py-2 text-sm transition-colors {editingType ===
+										option.value
+											? 'border-primary bg-primary text-primary-foreground'
+											: 'border-input bg-background hover:bg-accent'}"
+										onclick={() => (editingType = option.value)}
+									>
+										{option.label}
+									</button>
+								{/each}
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<Dialog.Footer>
+					<Button variant="outline" onclick={closeEditDialog} disabled={isSaving}>Cancel</Button>
+					<Button
+						onclick={saveUser}
+						disabled={isSaving ||
+							(editingStatus === selectedUser.status && editingType === selectedUser.type)}
+					>
+						{#if isSaving}
+							<Spinner class="mr-2 size-4" />
+							Saving...
+						{:else}
+							Save Changes
+						{/if}
+					</Button>
+				</Dialog.Footer>
+			{/if}
+		</Dialog.Content>
+	</Dialog.Root>
 </div>
