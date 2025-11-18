@@ -8,6 +8,7 @@
 	import LayoutDashboardIcon from '@lucide/svelte/icons/layout-dashboard';
 	import UsersIcon from '@lucide/svelte/icons/users';
 	import FileTextIcon from '@lucide/svelte/icons/file-text';
+	import GitPullRequestIcon from '@lucide/svelte/icons/git-pull-request';
 	import FolderIcon from '@lucide/svelte/icons/folder';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import { page } from '$app/stores';
@@ -21,6 +22,7 @@
 		{ href: '/management', label: 'Dashboard', icon: LayoutDashboardIcon },
 		{ href: '/management/users', label: 'Users', icon: UsersIcon },
 		{ href: '/management/accounts', label: 'Accounts', icon: FileTextIcon },
+		{ href: '/management/requests', label: 'Requests', icon: GitPullRequestIcon },
 		{ href: '/management/files', label: 'Files', icon: FolderIcon }
 	];
 
