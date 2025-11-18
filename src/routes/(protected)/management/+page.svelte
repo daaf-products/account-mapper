@@ -207,17 +207,33 @@
 		return type.charAt(0).toUpperCase() + type.slice(1);
 	}
 
-	// Mock data - will be replaced with real data later
+	// Metrics from real data
 	const metrics = {
-		totalAccounts: 85,
+		totalAccounts: data.accountDistribution?.total || 0,
 		pendingUsers: data.pendingUsers?.length || 0,
 		mappingRequests: data.pendingRequests?.length || 0
 	};
 
+	// Account distribution from real data
 	const accountDistribution = [
-		{ name: 'Mapped', value: 45, percentage: 52.9, color: 'hsl(173, 80%, 40%)' },
-		{ name: 'Unmapped', value: 28, percentage: 32.9, color: 'hsl(199, 89%, 48%)' },
-		{ name: 'Parked', value: 12, percentage: 14.1, color: 'hsl(43, 96%, 56%)' }
+		{
+			name: 'Mapped',
+			value: data.accountDistribution?.mapped.count || 0,
+			percentage: data.accountDistribution?.mapped.percentage || 0,
+			color: 'hsl(173, 80%, 40%)'
+		},
+		{
+			name: 'Unmapped',
+			value: data.accountDistribution?.unmapped.count || 0,
+			percentage: data.accountDistribution?.unmapped.percentage || 0,
+			color: 'hsl(199, 89%, 48%)'
+		},
+		{
+			name: 'Parked',
+			value: data.accountDistribution?.parked.count || 0,
+			percentage: data.accountDistribution?.parked.percentage || 0,
+			color: 'hsl(43, 96%, 56%)'
+		}
 	];
 
 	const pendingUsers = data.pendingUsers || [];
@@ -229,7 +245,7 @@
 		color: item.color
 	}));
 
-	const total = accountDistribution.reduce((sum, item) => sum + item.value, 0);
+	const total = data.accountDistribution?.total || 0;
 
 	const chartConfig = {
 		value: { label: 'Accounts' },

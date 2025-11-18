@@ -55,6 +55,64 @@ export const load: PageServerLoad = async ({ parent, cookies }) => {
 		console.error('Error fetching pending requests:', requestsError);
 	}
 
+	// Fetch bank account statistics
+	let accountDistribution = {
+		total: 0,
+		mapped: { count: 0, percentage: 0 },
+		unmapped: { count: 0, percentage: 0 },
+		parked: { count: 0, percentage: 0 }
+	};
+
+	try {
+		const { data: bankAccountsData, error: accountsError } = await (supabase
+			.from('bank_accounts')
+			.select('status') as any);
+
+		if (accountsError) {
+			console.error('Error fetching bank accounts:', accountsError);
+			console.error('Error details:', JSON.stringify(accountsError, null, 2));
+		} else {
+			// Debug: Log bank accounts data
+			console.log('Bank accounts data:', {
+				count: bankAccountsData?.length || 0,
+				sample: bankAccountsData?.slice(0, 3)
+			});
+
+			// Calculate account distribution statistics
+			const totalAccounts = bankAccountsData?.length || 0;
+			const mappedCount = bankAccountsData?.filter((acc: any) => acc.status === 'mapped').length || 0;
+			const unmappedCount = bankAccountsData?.filter((acc: any) => acc.status === 'unmapped').length || 0;
+			const parkedCount = bankAccountsData?.filter((acc: any) => acc.status === 'parked').length || 0;
+
+			console.log('Account distribution calculated:', {
+				total: totalAccounts,
+				mapped: mappedCount,
+				unmapped: unmappedCount,
+				parked: parkedCount
+			});
+
+			accountDistribution = {
+				total: totalAccounts,
+				mapped: {
+					count: mappedCount,
+					percentage: totalAccounts > 0 ? Math.round((mappedCount / totalAccounts) * 100 * 10) / 10 : 0
+				},
+				unmapped: {
+					count: unmappedCount,
+					percentage: totalAccounts > 0 ? Math.round((unmappedCount / totalAccounts) * 100 * 10) / 10 : 0
+				},
+				parked: {
+					count: parkedCount,
+					percentage: totalAccounts > 0 ? Math.round((parkedCount / totalAccounts) * 100 * 10) / 10 : 0
+				}
+			};
+
+			console.log('Final accountDistribution:', accountDistribution);
+		}
+	} catch (err) {
+		console.error('Exception fetching bank accounts:', err);
+	}
+
 	// Format pending users with time ago
 	const pendingUsers = (pendingUsersData || []).map((user: any) => {
 		const createdAt = new Date(user.created_at);
@@ -132,7 +190,8 @@ export const load: PageServerLoad = async ({ parent, cookies }) => {
 	return {
 		user,
 		pendingUsers,
-		pendingRequests
+		pendingRequests,
+		accountDistribution
 	};
 };
 
