@@ -31,7 +31,7 @@
 		accountNumber: string;
 		ifscCode: string;
 		status: 'mapped' | 'unmapped' | 'parked';
-		addedByType: 'merchant' | 'holder';
+		addedByType: 'management' | 'holder';
 		addedByUserId: string;
 		addedByUserName: string;
 		mappedToUserId: string | null;
@@ -77,6 +77,20 @@
 	let revealedIfscCode = $state<string | null>(null);
 	let isRevealing = $state(false);
 	let isRevealed = $state(false);
+
+	// Add Account Dialog state
+	let addDialogOpen = $state(false);
+	let newAccountForm = $state({
+		bankName: '',
+		accountHolderName: '',
+		accountNumber: '',
+		ifscCode: '',
+		status: 'unmapped' as 'mapped' | 'unmapped' | 'parked',
+		addedByType: 'holder' as 'management' | 'holder',
+		addedByUserId: '',
+		mappedToUserId: null as string | null
+	});
+	let isCreating = $state(false);
 	
 	// User can potentially reveal data (we'll check permissions on API call)
 	// Management, Merchant, and Holder all have different reveal permissions
@@ -111,7 +125,7 @@
 
 	const addedByOptions = [
 		{ value: 'all', label: 'All Types' },
-		{ value: 'merchant', label: 'Merchant' },
+		{ value: 'management', label: 'Management' },
 		{ value: 'holder', label: 'Holder' }
 	];
 
@@ -211,6 +225,120 @@
 	function selectMerchant(merchantId: string | null) {
 		editingMappedToUserId = merchantId;
 		merchantCommandOpen = false;
+	}
+
+	// Open add account dialog
+	function openAddDialog() {
+		// Use logged-in user's details
+		const currentUserId = data.user.id;
+		const currentUserType = data.user.type;
+		
+		// Map user type to added_by_type
+		// Only management and holder can add accounts (not merchant)
+		const addedByType = currentUserType === 'management' ? 'management' : 'holder';
+		
+		newAccountForm = {
+			bankName: '',
+			accountHolderName: '',
+			accountNumber: '',
+			ifscCode: '',
+			status: 'unmapped',
+			addedByType: addedByType as 'management' | 'holder',
+			addedByUserId: currentUserId,
+			mappedToUserId: null
+		};
+		addDialogOpen = true;
+	}
+
+	// Close add account dialog
+	function closeAddDialog() {
+		addDialogOpen = false;
+		newAccountForm = {
+			bankName: '',
+			accountHolderName: '',
+			accountNumber: '',
+			ifscCode: '',
+			status: 'unmapped',
+			addedByType: 'holder',
+			addedByUserId: '',
+			mappedToUserId: null
+		};
+	}
+
+	// Auto-clear merchant mapping when status is unmapped in add form
+	$effect(() => {
+		if (newAccountForm.status === 'unmapped' && newAccountForm.mappedToUserId !== null) {
+			newAccountForm.mappedToUserId = null;
+		}
+	});
+
+	// Get user type color for pill
+	function getUserTypeColor(type: string) {
+		switch (type) {
+			case 'management':
+				return 'bg-orange-500/20 text-orange-400';
+			case 'merchant':
+				return 'bg-purple-500/20 text-purple-400';
+			case 'holder':
+				return 'bg-teal-500/20 text-teal-400';
+			default:
+				return 'bg-gray-500/20 text-gray-400';
+		}
+	}
+
+	// Create new bank account
+	async function createBankAccount() {
+		// Validation
+		if (!newAccountForm.bankName.trim()) {
+			toast.error('Bank name is required');
+			return;
+		}
+		if (!newAccountForm.accountHolderName.trim()) {
+			toast.error('Account holder name is required');
+			return;
+		}
+		if (!newAccountForm.accountNumber.trim()) {
+			toast.error('Account number is required');
+			return;
+		}
+		if (!newAccountForm.ifscCode.trim()) {
+			toast.error('IFSC code is required');
+			return;
+		}
+		if (!newAccountForm.addedByUserId) {
+			toast.error('Please select who added this account');
+			return;
+		}
+		if (newAccountForm.status === 'mapped' && !newAccountForm.mappedToUserId) {
+			toast.error('Mapped accounts must have a merchant assigned');
+			return;
+		}
+
+		isCreating = true;
+		try {
+			const response = await fetch('/api/accounts/create', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(newAccountForm)
+			});
+
+			const result = await response.json();
+
+			if (!response.ok) {
+				throw new Error(result.error || 'Failed to create bank account');
+			}
+
+			toast.success('Bank account created successfully');
+			closeAddDialog();
+			await invalidateAll(); // Refresh data
+		} catch (error: any) {
+			console.error('Error creating bank account:', error);
+			toast.error(error.message || 'Failed to create bank account');
+		} finally {
+			isCreating = false;
+		}
 	}
 
 	// Save account changes
@@ -317,10 +445,10 @@
 	}
 
 	// Get added by color
-	function getAddedByColor(type: 'merchant' | 'holder') {
-		return type === 'merchant'
-			? 'bg-purple-500/20 text-purple-400'
-			: 'bg-blue-500/20 text-blue-400';
+	function getAddedByColor(type: 'management' | 'holder') {
+		return type === 'management'
+			? 'bg-orange-500/20 text-orange-400'
+			: 'bg-teal-500/20 text-teal-400';
 	}
 
 	// Filter accounts based on search
@@ -416,7 +544,7 @@
 			<h1 class="text-2xl font-semibold text-foreground">Bank Accounts</h1>
 			<p class="text-sm text-muted-foreground">Manage bank accounts and mappings</p>
 		</div>
-		<Button class="w-full md:w-auto">
+		<Button class="w-full md:w-auto" onclick={openAddDialog}>
 			<PlusIcon class="mr-2 size-4" />
 			Add Bank Account
 		</Button>
@@ -958,5 +1086,144 @@
 			</Command.Group>
 		</Command.List>
 	</Command.Dialog>
+
+	<!-- Add Bank Account Dialog -->
+	<Dialog.Root bind:open={addDialogOpen}>
+		<Dialog.Content class="max-w-xl max-h-[90vh] overflow-y-auto">
+			<Dialog.Header>
+				<Dialog.Title>Add Bank Account</Dialog.Title>
+				<Dialog.Description>Add a new bank account to the system</Dialog.Description>
+			</Dialog.Header>
+
+			<div class="space-y-4 py-4">
+				<!-- Bank Name -->
+				<div>
+					<label for="bankName" class="text-sm font-medium">
+						Bank Name <span class="text-destructive">*</span>
+					</label>
+					<Input
+						id="bankName"
+						bind:value={newAccountForm.bankName}
+						placeholder="e.g., HDFC Bank"
+						class="mt-1"
+					/>
+				</div>
+
+				<!-- Account Holder Name -->
+				<div>
+					<label for="accountHolderName" class="text-sm font-medium">
+						Account Holder Name <span class="text-destructive">*</span>
+					</label>
+					<Input
+						id="accountHolderName"
+						bind:value={newAccountForm.accountHolderName}
+						placeholder="e.g., John Doe"
+						class="mt-1"
+					/>
+				</div>
+
+				<!-- Account Number -->
+				<div>
+					<label for="accountNumber" class="text-sm font-medium">
+						Account Number <span class="text-destructive">*</span>
+					</label>
+					<Input
+						id="accountNumber"
+						bind:value={newAccountForm.accountNumber}
+						placeholder="e.g., 50100123456789"
+						class="mt-1"
+					/>
+				</div>
+
+				<!-- IFSC Code -->
+				<div>
+					<label for="ifscCode" class="text-sm font-medium">
+						IFSC Code <span class="text-destructive">*</span>
+					</label>
+					<Input
+						id="ifscCode"
+						bind:value={newAccountForm.ifscCode}
+						placeholder="e.g., HDFC0001234"
+						class="mt-1"
+					/>
+				</div>
+
+				<!-- Added By (Current User Info) -->
+				<div>
+					<!-- svelte-ignore a11y_label_has_associated_control -->
+					<label class="text-sm font-medium">Added By</label>
+					<div class="mt-2 rounded-lg border border-border bg-muted/30 p-4">
+					<div class="flex items-center gap-3">
+						<div class="flex size-10 items-center justify-center rounded-full bg-primary/10">
+							<UserIcon class="size-5 text-primary" />
+						</div>
+						<div class="flex-1">
+							<div class="font-medium text-foreground">{data.user.full_name}</div>
+							<div class="text-sm text-muted-foreground">{data.user.email}</div>
+						</div>
+						<span
+							class="rounded-md px-2.5 py-1 text-xs font-medium {getUserTypeColor(data.user.type)}"
+						>
+							{data.user.type.charAt(0).toUpperCase() + data.user.type.slice(1)}
+						</span>
+					</div>
+					</div>
+				</div>
+
+				<!-- Status -->
+				<div>
+					<!-- svelte-ignore a11y_label_has_associated_control -->
+					<label class="text-sm font-medium">
+						Status <span class="text-destructive">*</span>
+					</label>
+					<div class="mt-2 flex gap-2">
+						{#each statusOptions.filter((s) => s.value !== 'all') as option}
+							<button
+								type="button"
+								class="flex-1 rounded-md border px-3 py-2 text-sm transition-colors {newAccountForm.status ===
+								option.value
+									? 'border-primary bg-primary text-primary-foreground'
+									: 'border-input bg-background hover:bg-accent'}"
+								onclick={() => (newAccountForm.status = option.value as any)}
+							>
+								{option.label}
+							</button>
+						{/each}
+					</div>
+				</div>
+
+				<!-- Map to Merchant (only if status is mapped) -->
+				{#if newAccountForm.status === 'mapped'}
+					<div>
+						<!-- svelte-ignore a11y_label_has_associated_control -->
+						<label class="text-sm font-medium">
+							Map to Merchant <span class="text-destructive">*</span>
+						</label>
+						<select
+							bind:value={newAccountForm.mappedToUserId}
+							class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+						>
+							<option value={null}>Select merchant...</option>
+							{#each merchants as merchant}
+								<option value={merchant.id}>{merchant.fullName}</option>
+							{/each}
+						</select>
+					</div>
+				{/if}
+			</div>
+
+			<Dialog.Footer>
+				<Button variant="outline" onclick={closeAddDialog} disabled={isCreating}>Cancel</Button>
+				<Button onclick={createBankAccount} disabled={isCreating}>
+					{#if isCreating}
+						<Spinner class="mr-2 size-4" />
+						Creating...
+					{:else}
+						Create Account
+					{/if}
+				</Button>
+			</Dialog.Footer>
+		</Dialog.Content>
+	</Dialog.Root>
 </div>
 

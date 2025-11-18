@@ -216,3 +216,216 @@ If you want to start completely fresh:
 ---
 
 **Setup complete!** 🎉 You're ready to start developing.
+
+## Database Migrations
+
+This directory contains SQL migration scripts for the Account Mapper application.
+
+### Migration Files
+
+#### 001_drop_everything.sql
+**Purpose:** Drops all database objects (tables, functions, triggers, policies)
+
+**When to use:**
+- Complete database reset
+- Starting fresh in development
+- Before running migrations from scratch
+
+**⚠️ WARNING:** This will delete ALL data! Use with caution.
+
+```bash
+# Local development
+npx supabase db reset --local
+
+# Or run directly
+psql "your_connection_string" -f 001_drop_everything.sql
+```
+
+---
+
+#### 002_create_schema.sql
+**Purpose:** Creates the complete database schema
+
+**Includes:**
+- ✅ ENUM types (user_type, user_status, bank_account_status, added_by_type)
+- ✅ Tables (users, bank_accounts)
+- ✅ Indexes for performance
+- ✅ Functions (update_updated_at_column, is_management_user, handle_new_user)
+- ✅ Triggers (auto-create users, auto-update timestamps)
+- ✅ RLS policies for both tables
+- ✅ Permissions
+
+**Business Rules Enforced:**
+1. Only Management and Holder users can ADD bank accounts
+2. Accounts can only be MAPPED to Merchant users
+3. Management users can read/update all data
+4. Holders can only see their own accounts
+5. Merchants can only see accounts mapped to them
+
+```bash
+# Run after 001 (or on fresh database)
+psql "your_connection_string" -f 002_create_schema.sql
+```
+
+---
+
+#### 003_seed_data.sql
+**Purpose:** Populates database with test data for development
+
+**Includes:**
+- 📝 Instructions for seeding users (via Supabase Auth)
+- 15 bank accounts with various statuses
+- Mix of accounts added by holders and management
+- Accounts mapped to different merchants
+
+**Note:** Users must exist before running this. Create users via:
+- Supabase Dashboard (Authentication > Users)
+- API calls to `auth.admin.createUser()`
+- Your app's registration flow
+
+```bash
+# Run after users are created
+psql "your_connection_string" -f 003_seed_data.sql
+```
+
+---
+
+### Quick Start
+
+#### Full Reset (Local Development)
+
+```bash
+# Option 1: Using Supabase CLI (recommended)
+cd /path/to/project
+npx supabase db reset --local
+
+# This runs all migrations in order automatically
+```
+
+#### Manual Step-by-Step
+
+```bash
+# 1. Drop everything
+npx supabase db execute --local -f supabase/migrations/001_drop_everything.sql
+
+# 2. Create schema
+npx supabase db execute --local -f supabase/migrations/002_create_schema.sql
+
+# 3. Create users via your app or Supabase dashboard
+# Example: Sign up at http://localhost:54321/auth/v1/signup
+
+# 4. Seed data
+npx supabase db execute --local -f supabase/migrations/003_seed_data.sql
+```
+
+---
+
+### Production Deployment
+
+#### Using Supabase CLI
+
+```bash
+# Link to your project
+npx supabase link --project-ref your-project-ref
+
+# Push migrations
+npx supabase db push
+
+# Or deploy specific migration
+npx supabase db execute --remote -f supabase/migrations/002_create_schema.sql
+```
+
+#### Using Supabase Dashboard
+
+1. Go to **SQL Editor** in your Supabase project
+2. Copy and paste the contents of each migration file
+3. Run them in order (001 → 002 → 003)
+
+---
+
+### Schema Overview
+
+#### Users Table
+- **Purpose:** Stores user profiles and metadata
+- **Types:** unassigned, merchant, holder, management
+- **Statuses:** pending, approved, suspended
+- **Auth Integration:** Linked to Supabase Auth via trigger
+
+#### Bank Accounts Table
+- **Purpose:** Stores bank account information
+- **Statuses:** mapped, unmapped, parked
+- **Added By:** management, holder
+- **Mapped To:** merchant users only
+- **Security:** Data masked at server level, reveal via API
+
+---
+
+### Development Tips
+
+#### Testing RLS Policies
+
+```sql
+-- Test as different user types
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claims.sub TO 'user-uuid-here';
+
+-- Test management user
+SELECT * FROM public.users; -- Should see all users
+
+-- Test holder user
+SELECT * FROM public.bank_accounts; -- Should see only their accounts
+```
+
+#### Check Current Schema
+
+```sql
+-- List all tables
+SELECT tablename FROM pg_tables WHERE schemaname = 'public';
+
+-- List all enums
+SELECT typname FROM pg_type WHERE typtype = 'e';
+
+-- List all functions
+SELECT proname FROM pg_proc WHERE pronamespace = 'public'::regnamespace;
+
+-- List all policies
+SELECT tablename, policyname FROM pg_policies;
+```
+
+---
+
+### Troubleshooting
+
+#### "relation already exists" error
+- Run `001_drop_everything.sql` first to clean up
+
+#### "type already exists" error
+- Run `001_drop_everything.sql` to drop all ENUMs
+
+#### "no users found" when seeding
+- Create users via Supabase Auth first
+- Update user types: `UPDATE public.users SET type = 'management' WHERE email = 'admin@example.com'`
+
+#### RLS blocking queries
+- Check your JWT token has the correct user ID
+- Verify user type is set correctly in public.users
+- Use service role key for admin operations
+
+---
+
+### Migration History
+
+| Version | Date | Description |
+|---------|------|-------------|
+| 003 | 2025-11-18 | Clean consolidated setup with seed data |
+| 002 | 2025-11-18 | Complete schema with users + bank accounts |
+| 001 | 2025-11-18 | Drop everything script |
+
+---
+
+### Support
+
+For issues or questions:
+1. Check Supabase logs: `npx supabase logs --local`
+2. Review RLS policies in Supabase Dashboard
+3. Test queries in SQL Editor with different user contexts

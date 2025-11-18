@@ -8,7 +8,7 @@ type BankAccount = {
 	accountNumber: string;
 	ifscCode: string;
 	status: 'mapped' | 'unmapped' | 'parked';
-	addedByType: 'merchant' | 'holder';
+	addedByType: 'management' | 'holder';
 	addedByUserId: string;
 	addedByUserName: string;
 	mappedToUserId: string | null;

@@ -10,7 +10,8 @@
   NODE_VERSION = "20"
   # These are PUBLIC variables (safe to expose in client bundle)
   # Netlify secrets scanner should ignore them
-  SECRETS_SCAN_OMIT_KEYS = "PUBLIC_SUPABASE_ANON_KEY,PUBLIC_SUPABASE_URL"
+  # SUPABASE_SERVICE_ROLE_KEY is server-only (used in private env, never in client)
+  SECRETS_SCAN_OMIT_KEYS = "PUBLIC_SUPABASE_ANON_KEY,PUBLIC_SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY"
 
 # Serverless functions configuration
 [functions]
