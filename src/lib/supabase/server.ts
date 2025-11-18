@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import type { Cookies } from '@sveltejs/kit';
 import type { Database } from './database.types';
 import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
+import { SUPABASE_SERVICE_ROLE_KEY } from '$env/static/private';
 
 export function createClient(cookies: Cookies) {
 	if (!PUBLIC_SUPABASE_URL || !PUBLIC_SUPABASE_ANON_KEY) {
@@ -35,6 +36,31 @@ export function createClient(cookies: Cookies) {
 			remove(name: string, options: { path?: string; domain?: string }) {
 				cookies.delete(name, options);
 			}
+		}
+	});
+}
+
+/**
+ * Creates a Supabase admin client with service role privileges.
+ * This client bypasses RLS and has full database access.
+ * USE WITH CAUTION - Only use for admin operations!
+ */
+export function createAdminClient() {
+	if (!PUBLIC_SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+		throw new Error(
+			`Missing Supabase admin environment variables. Please check your .env file.\n` +
+				`Required: PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY\n` +
+				`Current values: URL=${PUBLIC_SUPABASE_URL ? 'set' : 'missing'}, SERVICE_KEY=${SUPABASE_SERVICE_ROLE_KEY ? 'set' : 'missing'}`
+		);
+	}
+
+	return createServerClient<Database>(PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+		cookies: {
+			get() {
+				return undefined;
+			},
+			set() {},
+			remove() {}
 		}
 	});
 }
