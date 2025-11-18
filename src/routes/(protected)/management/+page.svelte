@@ -10,6 +10,11 @@
 	import * as Chart from '$lib/components/ui/chart/index.js';
 	import ClockIcon from '@lucide/svelte/icons/clock';
 	import UserCheckIcon from '@lucide/svelte/icons/user-check';
+	import BuildingIcon from '@lucide/svelte/icons/building';
+	import CheckCircleIcon from '@lucide/svelte/icons/check-circle';
+	import XCircleIcon from '@lucide/svelte/icons/x-circle';
+	import UserIcon from '@lucide/svelte/icons/user';
+	import MailIcon from '@lucide/svelte/icons/mail';
 	import type { PageData } from './$types';
 	import { PieChart } from 'layerchart';
 	import { invalidateAll } from '$app/navigation';
@@ -33,6 +38,11 @@
 	let editingStatus = $state('');
 	let editingType = $state('');
 	let isSaving = $state(false);
+
+	// Dialog state for mapping requests
+	let requestDialogOpen = $state(false);
+	let selectedRequest = $state<(typeof data.pendingRequests)[0] | null>(null);
+	let isProcessingRequest = $state(false);
 
 	// Filter options
 	const statusOptions = [
@@ -97,9 +107,79 @@
 		}
 	}
 
+	// Open request dialog
+	function openRequestDialog(request: (typeof data.pendingRequests)[0]) {
+		selectedRequest = request;
+		requestDialogOpen = true;
+	}
+
+	// Close request dialog
+	function closeRequestDialog() {
+		requestDialogOpen = false;
+		selectedRequest = null;
+	}
+
+	// Handle approve request
+	async function handleApproveRequest() {
+		if (!selectedRequest) return;
+
+		isProcessingRequest = true;
+		try {
+			const response = await fetch('/api/requests/update', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ requestId: selectedRequest.id, status: 'approved' })
+			});
+
+			if (!response.ok) {
+				const error = await response.json();
+				throw new Error(error.error || 'Failed to approve request');
+			}
+
+			toast.success('Request approved successfully');
+			closeRequestDialog();
+			await invalidateAll();
+		} catch (error) {
+			console.error('Error approving request:', error);
+			toast.error(error instanceof Error ? error.message : 'Failed to approve request');
+		} finally {
+			isProcessingRequest = false;
+		}
+	}
+
+	// Handle reject request
+	async function handleRejectRequest() {
+		if (!selectedRequest) return;
+
+		isProcessingRequest = true;
+		try {
+			const response = await fetch('/api/requests/update', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ requestId: selectedRequest.id, status: 'rejected' })
+			});
+
+			if (!response.ok) {
+				const error = await response.json();
+				throw new Error(error.error || 'Failed to reject request');
+			}
+
+			toast.success('Request rejected successfully');
+			closeRequestDialog();
+			await invalidateAll();
+		} catch (error) {
+			console.error('Error rejecting request:', error);
+			toast.error(error instanceof Error ? error.message : 'Failed to reject request');
+		} finally {
+			isProcessingRequest = false;
+		}
+	}
+
 	// Format date helper
-	function formatDate(dateString: string): string {
+	function formatDate(dateString: string | undefined): string {
+		if (!dateString) return 'N/A';
 		const date = new Date(dateString);
+		if (isNaN(date.getTime())) return 'Invalid Date';
 		return date.toLocaleDateString('en-US', {
 			year: 'numeric',
 			month: 'short',
@@ -107,11 +187,31 @@
 		});
 	}
 
+	// Get user type color
+	function getUserTypeColor(type: string) {
+		switch (type) {
+			case 'management':
+				return 'bg-orange-500/20 text-orange-400';
+			case 'merchant':
+				return 'bg-purple-500/20 text-purple-400';
+			case 'holder':
+				return 'bg-teal-500/20 text-teal-400';
+			case 'unassigned':
+			default:
+				return 'bg-amber-500/20 text-amber-400';
+		}
+	}
+
+	// Format user type label
+	function formatUserType(type: string): string {
+		return type.charAt(0).toUpperCase() + type.slice(1);
+	}
+
 	// Mock data - will be replaced with real data later
 	const metrics = {
 		totalAccounts: 85,
 		pendingUsers: data.pendingUsers?.length || 0,
-		mappingRequests: 3
+		mappingRequests: data.pendingRequests?.length || 0
 	};
 
 	const accountDistribution = [
@@ -121,30 +221,7 @@
 	];
 
 	const pendingUsers = data.pendingUsers || [];
-
-	// Debug: Log to see what we're getting
-	// $effect(() => {
-	// 	console.log('Pending users from data:', data.pendingUsers);
-	// 	console.log('Pending users array:', pendingUsers);
-	// 	console.log('Pending users length:', pendingUsers.length);
-	// });
-
-	const mappingRequests = [
-		{ company: 'Tech Solutions Ltd', time: '1 hour ago', account: '****4521' },
-		{ company: 'Global Traders Inc', time: '3 hours ago', account: '****7832' },
-		{ company: 'Digital Services Co', time: '5 hours ago', account: '****9201' },
-		{ company: 'Innovation Hub LLC', time: '6 hours ago', account: '****3456' },
-		{ company: 'Prime Commerce Group', time: '8 hours ago', account: '****7890' },
-		{ company: 'Elite Business Solutions', time: '12 hours ago', account: '****2345' },
-		{ company: 'Advanced Systems Corp', time: '1 day ago', account: '****6789' },
-		{ company: 'Strategic Partners Inc', time: '1 day ago', account: '****0123' },
-		{ company: 'Modern Enterprises Ltd', time: '2 days ago', account: '****4567' },
-		{ company: 'Dynamic Ventures LLC', time: '2 days ago', account: '****8901' },
-		{ company: 'Premium Services Group', time: '3 days ago', account: '****2345' },
-		{ company: 'Global Finance Corp', time: '3 days ago', account: '****6789' },
-		{ company: 'Tech Innovations Ltd', time: '4 days ago', account: '****0123' },
-		{ company: 'Business Excellence Inc', time: '4 days ago', account: '****4567' }
-	];
+	const pendingRequests = data.pendingRequests || [];
 
 	const chartData = accountDistribution.map((item) => ({
 		name: item.name,
@@ -286,16 +363,14 @@
 								<div class="flex-1 min-w-0">
 									<p class="font-medium text-foreground">{user.fullName}</p>
 									<p class="text-sm text-muted-foreground">{user.email}</p>
-									<div class="mt-1 flex items-center gap-2">
+								</div>
+								<div class="ml-4 shrink-0 flex flex-col items-end">
+									<div class="mb-2 flex items-center gap-2">
 										<ClockIcon class="size-3 text-muted-foreground" />
 										<span class="text-xs text-muted-foreground">{user.timeAgo}</span>
 									</div>
-								</div>
-								<div class="ml-4 shrink-0">
-									<span
-										class="rounded-md bg-amber-500/20 px-2.5 py-1 text-xs font-medium text-amber-400"
-									>
-										Unassigned
+									<span class="rounded-md px-2.5 py-1 text-xs font-medium {getUserTypeColor(user.type)}">
+										{formatUserType(user.type)}
 									</span>
 								</div>
 							</button>
@@ -324,33 +399,51 @@
 					<Card.Title>Account Mapping Requests</Card.Title>
 					<Card.Description>Merchant requests to map bank accounts</Card.Description>
 				</div>
-				<Button variant="ghost" size="icon" href="/management/accounts">
+				<Button variant="ghost" size="icon" href="/management/requests">
 					<ArrowUpRightIcon class="size-4" />
 				</Button>
 			</Card.Header>
 			<Card.Content>
-				<div class="max-h-[250px] space-y-0 overflow-y-auto">
-					{#each mappingRequests as request}
-						<div
-							class="flex items-center justify-between border-b border-border px-4 py-4 last:border-0 bg-background"
-						>
-							<div class="flex-1 min-w-0">
-								<p class="font-medium text-foreground">{request.company}</p>
-								<div class="mt-1 flex items-center gap-2">
-									<ClockIcon class="size-3 text-muted-foreground" />
-									<span class="text-xs text-muted-foreground">{request.time}</span>
+				{#if pendingRequests.length === 0}
+					<div class="flex flex-col items-center justify-center py-8">
+						<Empty.Root>
+							<Empty.Header>
+								<Empty.Media>
+									<ArrowUpRightIcon class="size-8 text-muted-foreground" />
+								</Empty.Media>
+								<Empty.Title>No pending requests</Empty.Title>
+								<Empty.Description>
+									There are no merchant requests waiting for approval.
+								</Empty.Description>
+							</Empty.Header>
+						</Empty.Root>
+					</div>
+				{:else}
+					<div class="max-h-[250px] space-y-0 overflow-y-auto">
+						{#each pendingRequests as request}
+							<button
+								type="button"
+								class="flex w-full items-center justify-between border-b border-border px-4 py-4 text-left last:border-0 bg-background hover:bg-accent/50 transition-colors cursor-pointer"
+								onclick={() => openRequestDialog(request)}
+							>
+								<div class="flex-1 min-w-0">
+									<p class="font-medium text-foreground">{request.merchantName}</p>
+									<div class="mt-1 flex items-center gap-2">
+										<ClockIcon class="size-3 text-muted-foreground" />
+										<span class="text-xs text-muted-foreground">{request.time}</span>
+									</div>
 								</div>
-							</div>
-							<div class="ml-4 shrink-0">
-								<span
-									class="rounded-md bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
-								>
-									{request.account}
-								</span>
-							</div>
-						</div>
-					{/each}
-				</div>
+								<div class="ml-4 shrink-0">
+									<span
+										class="rounded-md bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+									>
+										{request.accountNumber}
+									</span>
+								</div>
+							</button>
+						{/each}
+					</div>
+				{/if}
 			</Card.Content>
 		</Card.Root>
 	</div>
@@ -445,6 +538,109 @@
 							Save Changes
 						{/if}
 					</Button>
+				</Dialog.Footer>
+			{/if}
+		</Dialog.Content>
+	</Dialog.Root>
+
+	<!-- Request Details Dialog -->
+	<Dialog.Root bind:open={requestDialogOpen}>
+		<Dialog.Content class="max-w-md">
+			<Dialog.Header>
+				<Dialog.Title>Request Details</Dialog.Title>
+				<Dialog.Description>Review and approve merchant request</Dialog.Description>
+			</Dialog.Header>
+
+			{#if selectedRequest}
+				<div class="space-y-4 py-4">
+					<!-- Merchant Info -->
+					<div>
+						<h4 class="mb-2 text-sm font-medium text-muted-foreground">Merchant</h4>
+						<div class="rounded-lg border border-border bg-muted/30 p-3">
+							<div class="mb-2 flex items-center gap-2">
+								<UserIcon class="size-4 text-muted-foreground" />
+								<span class="font-medium">{selectedRequest.merchantName}</span>
+							</div>
+							<div class="flex items-center gap-2">
+								<MailIcon class="size-4 text-muted-foreground" />
+								<span class="text-sm text-muted-foreground">{selectedRequest.merchantEmail}</span>
+							</div>
+						</div>
+					</div>
+
+					<!-- Bank Account Info -->
+					<div>
+						<h4 class="mb-2 text-sm font-medium text-muted-foreground">Bank Account</h4>
+						<div class="rounded-lg border border-border bg-muted/30 p-3">
+							<div class="mb-2 flex items-center gap-2">
+								<BuildingIcon class="size-4 text-muted-foreground" />
+								<span class="font-medium">{selectedRequest.bankName}</span>
+							</div>
+							<div class="space-y-1">
+								<div class="flex justify-between text-sm">
+									<span class="text-muted-foreground">Account Number</span>
+									<span class="font-mono">{selectedRequest.accountNumber}</span>
+								</div>
+								<div class="flex justify-between text-sm">
+									<span class="text-muted-foreground">IFSC Code</span>
+									<span class="font-mono">{selectedRequest.ifscCode}</span>
+								</div>
+								<div class="flex justify-between text-sm">
+									<span class="text-muted-foreground">Holder Name</span>
+									<span>{selectedRequest.accountHolderName}</span>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Request Notes -->
+					<div>
+						<h4 class="mb-2 text-sm font-medium text-muted-foreground">Request Notes</h4>
+						<div class="rounded-lg border border-border bg-muted/30 p-3">
+							<p class="text-sm">{selectedRequest.requestNotes || 'No notes provided'}</p>
+						</div>
+					</div>
+
+					<!-- Timeline -->
+					<div>
+						<h4 class="mb-2 text-sm font-medium text-muted-foreground">Timeline</h4>
+						<div class="flex items-center gap-2 text-sm">
+							<ClockIcon class="size-4 text-muted-foreground" />
+							<span class="text-muted-foreground">Requested {selectedRequest.time}</span>
+						</div>
+					</div>
+				</div>
+
+				<Dialog.Footer>
+					<div class="flex w-full gap-2">
+						<Button
+							class="flex-1 bg-teal-600 text-white hover:bg-teal-700"
+							onclick={handleApproveRequest}
+							disabled={isProcessingRequest}
+						>
+							{#if isProcessingRequest}
+								<Spinner class="mr-2 size-4" />
+								Approving...
+							{:else}
+								<CheckCircleIcon class="mr-2 size-4" />
+								Approve
+							{/if}
+						</Button>
+						<Button
+							variant="secondary"
+							class="flex-1"
+							onclick={handleRejectRequest}
+							disabled={isProcessingRequest}
+						>
+							{#if isProcessingRequest}
+								<Spinner class="mr-2 size-4" />
+								Rejecting...
+							{:else}
+								<XCircleIcon class="mr-2 size-4" />
+								Reject
+							{/if}
+						</Button>
+					</div>
 				</Dialog.Footer>
 			{/if}
 		</Dialog.Content>
