@@ -17,7 +17,6 @@
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
 	import CheckIcon from '@lucide/svelte/icons/check';
 	import { goto, invalidateAll } from '$app/navigation';
-	import { page } from '$app/stores';
 	import { toast } from 'svelte-sonner';
 
 	type User = {
@@ -102,12 +101,13 @@
 	// Apply filters - make API call
 	async function applyFilters() {
 		isLoading = true;
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity
 		const params = new URLSearchParams();
-		
+
 		if (statusFilter !== 'all') {
 			params.set('status', statusFilter);
 		}
-		
+
 		if (typeFilter !== 'all') {
 			params.set('type', typeFilter);
 		}
@@ -349,7 +349,7 @@
 
 	// Reset pagination and mobile scroll when search changes
 	$effect(() => {
-		searchQuery;
+		void searchQuery; // Track searchQuery changes
 		currentPage = 0;
 		mobileItemsToShow = 10;
 	});
@@ -419,7 +419,7 @@
 	<!-- Search and Filters -->
 	<div class="flex flex-col gap-4 md:flex-row md:items-center">
 		<div class="relative flex-1">
-			<SearchIcon class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+			<SearchIcon class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
 			<Input
 				placeholder="Search users by name or email..."
 				bind:value={searchQuery}
@@ -439,7 +439,7 @@
 			</Popover.Trigger>
 			<Popover.Content class="w-[180px] p-0">
 				<div class="flex flex-col">
-					{#each statusOptions as option}
+					{#each statusOptions as option (option.value)}
 						<button
 							type="button"
 							class="flex items-center gap-2 px-4 py-2 text-sm hover:bg-accent"
@@ -467,7 +467,7 @@
 			</Popover.Trigger>
 			<Popover.Content class="w-[180px] p-0">
 				<div class="flex flex-col">
-					{#each typeOptions as option}
+					{#each typeOptions as option (option.value)}
 						<button
 							type="button"
 							class="flex items-center gap-2 px-4 py-2 text-sm hover:bg-accent"
@@ -495,61 +495,63 @@
 				{:else}
 					<Table.Root>
 						<Table.Header>
-						<Table.Row>
-							<Table.Head>User</Table.Head>
-							<Table.Head>Type</Table.Head>
-							<Table.Head>Status</Table.Head>
-							<Table.Head>Joined Date</Table.Head>
-							<Table.Head>Updated At</Table.Head>
-						</Table.Row>
-					</Table.Header>
-					<Table.Body>
-						{#if paginatedUsers().length === 0}
-							<Table.Row class="cursor-pointer">
-								<Table.Cell colspan={5} class="h-24 text-center">
-									{searchQuery ? 'No users found matching your search.' : 'No users found.'}
-								</Table.Cell>
+							<Table.Row>
+								<Table.Head>User</Table.Head>
+								<Table.Head>Type</Table.Head>
+								<Table.Head>Status</Table.Head>
+								<Table.Head>Joined Date</Table.Head>
+								<Table.Head>Updated At</Table.Head>
 							</Table.Row>
-						{:else}
-							{#each paginatedUsers() as user (user.id)}
-								{@const statusDisplay = getStatusDisplay(user.status)}
-								{@const StatusIcon = statusDisplay.icon}
-								<Table.Row class="cursor-pointer" onclick={() => openUserDialog(user)}>
-									<Table.Cell>
-										<div class="flex flex-col">
-											<div class="font-medium text-foreground">{user.fullName}</div>
-											<div class="text-sm text-muted-foreground">{user.email}</div>
-										</div>
-									</Table.Cell>
-									<Table.Cell>
-										<span class="rounded-md px-2.5 py-1 text-xs font-medium {getTypeColor(user.type)}">
-											{user.type.charAt(0).toUpperCase() + user.type.slice(1)}
-										</span>
-									</Table.Cell>
-									<Table.Cell>
-										<div class="flex items-center gap-2 {statusDisplay.color}">
-											<StatusIcon class="size-4" />
-											<span>{statusDisplay.label}</span>
-										</div>
-									</Table.Cell>
-									<Table.Cell>
-										<div class="text-muted-foreground">{formatDate(user.createdAt)}</div>
-									</Table.Cell>
-									<Table.Cell>
-										<div class="text-muted-foreground">{formatDate(user.updatedAt)}</div>
+						</Table.Header>
+						<Table.Body>
+							{#if paginatedUsers().length === 0}
+								<Table.Row class="cursor-pointer">
+									<Table.Cell colspan={5} class="h-24 text-center">
+										{searchQuery ? 'No users found matching your search.' : 'No users found.'}
 									</Table.Cell>
 								</Table.Row>
-							{/each}
-						{/if}
-					</Table.Body>
-				</Table.Root>
+							{:else}
+								{#each paginatedUsers() as user (user.id)}
+									{@const statusDisplay = getStatusDisplay(user.status)}
+									{@const StatusIcon = statusDisplay.icon}
+									<Table.Row class="cursor-pointer" onclick={() => openUserDialog(user)}>
+										<Table.Cell>
+											<div class="flex flex-col">
+												<div class="font-medium text-foreground">{user.fullName}</div>
+												<div class="text-sm text-muted-foreground">{user.email}</div>
+											</div>
+										</Table.Cell>
+										<Table.Cell>
+											<span
+												class="rounded-md px-2.5 py-1 text-xs font-medium {getTypeColor(user.type)}"
+											>
+												{user.type.charAt(0).toUpperCase() + user.type.slice(1)}
+											</span>
+										</Table.Cell>
+										<Table.Cell>
+											<div class="flex items-center gap-2 {statusDisplay.color}">
+												<StatusIcon class="size-4" />
+												<span>{statusDisplay.label}</span>
+											</div>
+										</Table.Cell>
+										<Table.Cell>
+											<div class="text-muted-foreground">{formatDate(user.createdAt)}</div>
+										</Table.Cell>
+										<Table.Cell>
+											<div class="text-muted-foreground">{formatDate(user.updatedAt)}</div>
+										</Table.Cell>
+									</Table.Row>
+								{/each}
+							{/if}
+						</Table.Body>
+					</Table.Root>
 				{/if}
 			</Card.Content>
 		</Card.Root>
 
 		<!-- Pagination -->
 		{#if filteredUsers().length > 0}
-			<div class="mt-4 pb-4 flex items-center justify-between">
+			<div class="mt-4 flex items-center justify-between pb-4">
 				<div class="text-sm text-muted-foreground">
 					Showing {currentPage * pageSize + 1} to {Math.min(
 						(currentPage + 1) * pageSize,
@@ -675,7 +677,7 @@
 						<div class="mb-3">
 							<div class="text-sm font-medium text-muted-foreground">Status</div>
 							<div class="mt-2 flex gap-2">
-								{#each statusOptions.filter((s) => s.value !== 'all') as option}
+								{#each statusOptions.filter((s) => s.value !== 'all') as option (option.value)}
 									<button
 										type="button"
 										class="flex-1 rounded-md border px-3 py-2 text-sm transition-colors {editingStatus ===
@@ -694,7 +696,7 @@
 						<div>
 							<div class="text-sm font-medium text-muted-foreground">User Type</div>
 							<div class="mt-2 grid grid-cols-2 gap-2">
-								{#each typeOptions.filter((t) => t.value !== 'all') as option}
+								{#each typeOptions.filter((t) => t.value !== 'all') as option (option.value)}
 									<button
 										type="button"
 										class="rounded-md border px-3 py-2 text-sm transition-colors {editingType ===
@@ -794,7 +796,7 @@
 				<div class="space-y-2">
 					<div class="text-sm font-medium">User Type</div>
 					<div class="grid grid-cols-2 gap-2">
-						{#each typeOptions.filter((t) => t.value !== 'all') as option}
+						{#each typeOptions.filter((t) => t.value !== 'all') as option (option.value)}
 							<button
 								type="button"
 								class="rounded-md border px-3 py-2 text-sm transition-colors {newUserForm.type ===
@@ -814,7 +816,7 @@
 				<div class="space-y-2">
 					<div class="text-sm font-medium">User Status</div>
 					<div class="flex gap-2">
-						{#each statusOptions.filter((s) => s.value !== 'all') as option}
+						{#each statusOptions.filter((s) => s.value !== 'all') as option (option.value)}
 							<button
 								type="button"
 								class="flex-1 rounded-md border px-3 py-2 text-sm transition-colors {newUserForm.status ===

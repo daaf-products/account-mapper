@@ -20,7 +20,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 	if (locals.user.type === 'management') {
 		throw redirect(303, '/management');
 	}
-	// TODO: Add redirects for 'holder' and 'merchant' types
+	if (locals.user.type === 'merchant') {
+		throw redirect(303, '/merchant');
+	}
+	// TODO: Add redirects for 'holder' type
 
 	return {
 		user: locals.user

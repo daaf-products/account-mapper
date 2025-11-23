@@ -47,9 +47,7 @@ export const load: PageServerLoad = async ({ parent, cookies, url }) => {
 	}
 
 	// Calculate statistics (based on all users, not just filtered)
-	const allUsersQuery = supabase
-		.from('users')
-		.select('status', { count: 'exact', head: false });
+	const allUsersQuery = supabase.from('users').select('status', { count: 'exact', head: false });
 	const { data: allUsers } = await allUsersQuery;
 
 	const stats = {

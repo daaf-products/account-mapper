@@ -1,15 +1,15 @@
 <script lang="ts">
-	import { cn } from "$lib/utils";
-	import type { HTMLAttributes } from "svelte/elements";
-	import type { Snippet } from "svelte";
+	import { cn } from '$lib/utils';
+	import type { HTMLAttributes } from 'svelte/elements';
+	import type { Snippet } from 'svelte';
 
-	let { 
-		class: className, 
+	let {
+		class: className,
 		children,
-		...rest 
+		...rest
 	}: HTMLAttributes<HTMLTableCaptionElement> & { children?: Snippet } = $props();
 </script>
 
-<caption class={cn("mt-4 text-sm text-muted-foreground", className)} {...rest}>
+<caption class={cn('mt-4 text-sm text-muted-foreground', className)} {...rest}>
 	{@render children?.()}
 </caption>

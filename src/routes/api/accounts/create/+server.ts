@@ -16,7 +16,10 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 	// Validate required fields
 	if (!bankName || !accountHolderName || !accountNumber || !ifscCode) {
-		return json({ error: 'Bank name, account holder, account number, and IFSC code are required' }, { status: 400 });
+		return json(
+			{ error: 'Bank name, account holder, account number, and IFSC code are required' },
+			{ status: 400 }
+		);
 	}
 
 	if (!status || !['mapped', 'unmapped', 'parked'].includes(status)) {
@@ -55,7 +58,10 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 	}
 
 	if (userData.type !== 'management') {
-		return json({ error: 'Unauthorized: Only management users can add bank accounts' }, { status: 403 });
+		return json(
+			{ error: 'Unauthorized: Only management users can add bank accounts' },
+			{ status: 403 }
+		);
 	}
 
 	try {
@@ -82,12 +88,15 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 		if (createError) {
 			console.error('Error creating bank account:', createError);
-			
+
 			// Check for unique constraint violation
 			if (createError.code === '23505') {
-				return json({ error: 'An account with this account number and bank already exists' }, { status: 409 });
+				return json(
+					{ error: 'An account with this account number and bank already exists' },
+					{ status: 409 }
+				);
 			}
-			
+
 			return json({ error: createError.message }, { status: 500 });
 		}
 
@@ -101,4 +110,3 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		return json({ error: 'Internal server error' }, { status: 500 });
 	}
 };
-

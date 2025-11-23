@@ -26,8 +26,10 @@
 		{ href: '/management/files', label: 'Files', icon: FolderIcon }
 	];
 
+	// Close drawer when route changes
+	// eslint-disable-next-line svelte/prefer-writable-derived
 	$effect(() => {
-		// Close drawer when route changes
+		void $page.url.pathname; // Track route changes
 		drawerOpen = false;
 	});
 </script>
@@ -50,7 +52,7 @@
 
 		<!-- Navigation -->
 		<nav class="relative flex-1 space-y-1 overflow-hidden px-4 py-2">
-			{#each navItems as item}
+			{#each navItems as item (item.href)}
 				{@const isActive = $page.url.pathname === item.href}
 				{@const Icon = item.icon}
 				<a
@@ -99,7 +101,9 @@
 	<!-- Mobile Layout Container -->
 	<div class="flex h-screen w-full flex-col md:hidden">
 		<!-- Mobile Header -->
-		<header class="sticky top-0 z-30 flex h-auto shrink-0 items-center justify-between border-b border-border bg-card px-4 py-3">
+		<header
+			class="sticky top-0 z-30 flex h-auto shrink-0 items-center justify-between border-b border-border bg-card px-4 py-3"
+		>
 			<div class="flex items-center gap-2">
 				<div class="rounded-lg border border-border bg-card p-2 shadow-sm">
 					<img src="/logo.svg" alt="Account Mapper" class="size-6" />
@@ -112,13 +116,13 @@
 		</header>
 
 		<!-- Main Content -->
-		<main class="flex-1 min-h-0 overflow-y-auto">
+		<main class="min-h-0 flex-1 overflow-y-auto">
 			{@render children()}
 		</main>
 	</div>
 
 	<!-- Desktop Main Content -->
-	<main class="hidden flex-1 min-w-0 overflow-y-auto md:block">
+	<main class="hidden min-w-0 flex-1 overflow-y-auto md:block">
 		{@render children()}
 	</main>
 
@@ -141,7 +145,7 @@
 				<div class="flex min-h-0 flex-1 flex-col">
 					<!-- Navigation -->
 					<nav class="flex-1 space-y-1 overflow-hidden px-4 py-4">
-						{#each navItems as item}
+						{#each navItems as item (item.href)}
 							{@const isActive = $page.url.pathname === item.href}
 							{@const Icon = item.icon}
 							<a
@@ -187,4 +191,3 @@
 		</Drawer.Portal>
 	</Drawer.Root>
 </div>
-

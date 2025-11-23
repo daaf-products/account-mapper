@@ -67,4 +67,3 @@ export const GET: RequestHandler = async ({ url, cookies, locals }) => {
 		throw error(500, err.message || 'Internal server error');
 	}
 };
-

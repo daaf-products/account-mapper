@@ -74,4 +74,3 @@ export const POST: RequestHandler = async ({ request, cookies, locals }) => {
 		throw error(500, err.message || 'Internal server error');
 	}
 };
-

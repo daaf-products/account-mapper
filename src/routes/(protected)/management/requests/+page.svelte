@@ -298,7 +298,7 @@
 					<div class="flex flex-col gap-4">
 						<!-- Tabs -->
 						<div class="flex gap-2 border-b border-border">
-							{#each tabs as tab}
+							{#each tabs as tab (tab.value)}
 								{@const Icon = tab.icon}
 								<button
 									type="button"
@@ -324,7 +324,7 @@
 						<!-- Search Bar -->
 						<div class="relative">
 							<SearchIcon
-								class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+								class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
 							/>
 							<Input
 								type="text"
@@ -341,7 +341,9 @@
 					{#if isLoading}
 						<div class="flex items-center justify-center p-8">
 							<div class="text-center">
-								<div class="mb-2 inline-block size-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+								<div
+									class="mb-2 inline-block size-8 animate-spin rounded-full border-4 border-primary border-t-transparent"
+								></div>
 								<p class="text-sm text-muted-foreground">Loading requests...</p>
 							</div>
 						</div>
@@ -377,7 +379,9 @@
 									{#each paginatedRequests as request (request.id)}
 										<Table.Row
 											onclick={() => selectRequest(request)}
-											class="cursor-pointer {selectedRequest?.id === request.id ? 'bg-accent/50' : ''}"
+											class="cursor-pointer {selectedRequest?.id === request.id
+												? 'bg-accent/50'
+												: ''}"
 										>
 											<Table.Cell>
 												<div class="flex flex-col">
@@ -396,7 +400,9 @@
 											<Table.Cell>
 												<div class="flex flex-col">
 													<span class="font-medium">{request.accountHolderName}</span>
-													<span class="font-mono text-xs text-muted-foreground">{request.ifscCode}</span>
+													<span class="font-mono text-xs text-muted-foreground"
+														>{request.ifscCode}</span
+													>
 												</div>
 											</Table.Cell>
 											<Table.Cell>
@@ -449,9 +455,7 @@
 
 							<!-- Pagination -->
 							{#if totalPages > 1}
-								<div
-									class="flex items-center justify-between border-t border-border px-4 py-3"
-								>
+								<div class="flex items-center justify-between border-t border-border px-4 py-3">
 									<p class="text-sm text-muted-foreground">
 										Showing {(currentPage - 1) * pageSize + 1} to {Math.min(
 											currentPage * pageSize,
@@ -490,7 +494,7 @@
 								<div
 									role="button"
 									tabindex="0"
-									class="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 text-left transition-colors hover:bg-accent/50 cursor-pointer"
+									class="flex cursor-pointer flex-col gap-3 rounded-lg border border-border bg-card p-4 text-left transition-colors hover:bg-accent/50"
 									onclick={() => selectRequest(request)}
 									onkeydown={(e) => {
 										if (e.key === 'Enter' || e.key === ' ') {
@@ -505,14 +509,20 @@
 											<h3 class="font-semibold">{request.merchantName}</h3>
 											<p class="text-sm text-muted-foreground">{request.merchantEmail}</p>
 										</div>
-										<span class="rounded-md border px-2 py-1 text-xs font-medium {getStatusColor(request.status)}">
+										<span
+											class="rounded-md border px-2 py-1 text-xs font-medium {getStatusColor(
+												request.status
+											)}"
+										>
 											<StatusIcon class="mr-1 inline size-3" />
 											{request.status.charAt(0).toUpperCase() + request.status.slice(1)}
 										</span>
 									</div>
 
 									<!-- Bank Details -->
-									<div class="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3">
+									<div
+										class="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3"
+									>
 										<BuildingIcon class="mt-1 size-4 shrink-0 text-muted-foreground" />
 										<div class="flex-1">
 											<p class="text-sm font-medium">{request.bankName}</p>
@@ -603,7 +613,11 @@
 						<!-- Status -->
 						{@const StatusIcon = getStatusIcon(selectedRequest.status)}
 						<div>
-							<span class="rounded-md border px-3 py-1.5 text-sm font-medium {getStatusColor(selectedRequest.status)}">
+							<span
+								class="rounded-md border px-3 py-1.5 text-sm font-medium {getStatusColor(
+									selectedRequest.status
+								)}"
+							>
 								<StatusIcon class="mr-2 inline size-4" />
 								{selectedRequest.status.charAt(0).toUpperCase() + selectedRequest.status.slice(1)}
 							</span>
@@ -710,4 +724,3 @@
 		{/if}
 	</div>
 </div>
-

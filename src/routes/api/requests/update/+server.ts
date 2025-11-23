@@ -11,7 +11,10 @@ export const POST: RequestHandler = async ({ request, cookies, locals }) => {
 
 		// Check if user is management
 		if (locals.user.type !== 'management') {
-			return json({ error: 'Forbidden: Only management users can update requests' }, { status: 403 });
+			return json(
+				{ error: 'Forbidden: Only management users can update requests' },
+				{ status: 403 }
+			);
 		}
 
 		const body = await request.json();
@@ -54,8 +57,10 @@ export const POST: RequestHandler = async ({ request, cookies, locals }) => {
 		}
 
 		if (!updatedRequest) {
-			return json({ error: 'Request not found or you do not have permission to update it' }, {status: 403
-			});
+			return json(
+				{ error: 'Request not found or you do not have permission to update it' },
+				{ status: 403 }
+			);
 		}
 
 		// If approved, update the bank account to map it to the merchant
@@ -96,4 +101,3 @@ export const POST: RequestHandler = async ({ request, cookies, locals }) => {
 		return json({ error: 'Internal server error' }, { status: 500 });
 	}
 };
-

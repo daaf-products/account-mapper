@@ -1,4 +1,3 @@
-
 <script lang="ts">
 	import * as Card from '$lib/components/ui/card';
 	import { Button } from '$lib/components/ui/button';
@@ -95,7 +94,7 @@
 				try {
 					const errorData = await response.json();
 					errorMessage = errorData.message || errorData.error || errorMessage;
-				} catch (e) {
+				} catch {
 					// If response is not JSON, use status text
 					errorMessage = response.statusText || errorMessage;
 				}
@@ -210,14 +209,18 @@
 	<!-- Header -->
 	<div>
 		<h1 class="text-2xl font-bold md:text-3xl">File Management</h1>
-		<p class="mt-1 text-sm text-muted-foreground">Upload and manage APK files for holder users to download</p>
+		<p class="mt-1 text-sm text-muted-foreground">
+			Upload and manage APK files for holder users to download
+		</p>
 	</div>
 
 	<!-- Upload Section -->
 	<Card.Root>
 		<Card.Header>
 			<Card.Title>Upload New APK File</Card.Title>
-			<Card.Description>Upload OTP Forwarder APK files for holder users to download</Card.Description>
+			<Card.Description
+				>Upload OTP Forwarder APK files for holder users to download</Card.Description
+			>
 		</Card.Header>
 		<Card.Content>
 			<!-- Upload Area -->
@@ -265,8 +268,7 @@
 				<ul class="space-y-1 text-sm text-muted-foreground">
 					<li>• File must be a valid APK file for the OTP Forwarder application</li>
 					<li>
-						• <strong>Filename must include version</strong> in format v1.2.3 (e.g.,
-						OTP_Forwarder_v1.2.3.apk)
+						• <strong>Filename must include version</strong> in format v1.2.3 (e.g., OTP_Forwarder_v1.2.3.apk)
 					</li>
 					<li>• Each version must be unique (cannot upload same version twice)</li>
 					<li>• Holder users will automatically see the latest version</li>
@@ -293,7 +295,7 @@
 			{:else}
 				<!-- Desktop View -->
 				<div class="hidden space-y-3 md:block">
-					{#each files as file}
+					{#each files as file (file.id)}
 						<div
 							class="flex items-center justify-between rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent/50"
 						>
@@ -305,7 +307,9 @@
 									<div class="flex items-center gap-2">
 										<p class="font-medium">{file.originalFilename}</p>
 										{#if file.isLatest}
-											<span class="rounded bg-teal-500/20 px-2 py-0.5 text-xs font-medium text-teal-400">
+											<span
+												class="rounded bg-teal-500/20 px-2 py-0.5 text-xs font-medium text-teal-400"
+											>
 												LATEST
 											</span>
 										{/if}
@@ -348,19 +352,21 @@
 
 				<!-- Mobile View -->
 				<div class="space-y-3 md:hidden">
-					{#each files as file}
+					{#each files as file (file.id)}
 						<Card.Root class="py-0">
 							<Card.Content class="p-4">
 								<div class="mb-3 flex items-start gap-3">
 									<div class="rounded-lg bg-primary/10 p-2.5">
 										<FileIcon class="size-5 text-primary" />
 									</div>
-									<div class="flex-1 min-w-0">
+									<div class="min-w-0 flex-1">
 										<div class="flex items-center gap-2">
-											<p class="font-medium text-sm truncate">{file.originalFilename}</p>
+											<p class="truncate text-sm font-medium">{file.originalFilename}</p>
 										</div>
 										{#if file.isLatest}
-											<span class="mt-1 inline-block rounded bg-teal-500/20 px-2 py-0.5 text-xs font-medium text-teal-400">
+											<span
+												class="mt-1 inline-block rounded bg-teal-500/20 px-2 py-0.5 text-xs font-medium text-teal-400"
+											>
 												LATEST
 											</span>
 										{/if}
@@ -386,7 +392,7 @@
 									<Button
 										size="sm"
 										variant="outline"
-										class="flex-1 h-9"
+										class="h-9 flex-1"
 										onclick={() => downloadFile(file.id, file.originalFilename)}
 									>
 										<DownloadIcon class="mr-2 size-4" />
@@ -414,12 +420,16 @@
 		<Dialog.Content class="max-w-md">
 			<Dialog.Header>
 				<Dialog.Title>Delete File</Dialog.Title>
-				<Dialog.Description>This action cannot be undone. The file will be permanently deleted.</Dialog.Description>
+				<Dialog.Description
+					>This action cannot be undone. The file will be permanently deleted.</Dialog.Description
+				>
 			</Dialog.Header>
 
 			{#if fileToDelete}
 				<div class="py-4">
-					<div class="mb-4 flex items-start gap-3 rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+					<div
+						class="mb-4 flex items-start gap-3 rounded-lg border border-destructive/50 bg-destructive/10 p-4"
+					>
 						<AlertTriangleIcon class="mt-0.5 size-5 shrink-0 text-destructive" />
 						<div class="flex-1">
 							<p class="mb-1 text-sm font-semibold text-destructive">Warning</p>
@@ -448,4 +458,3 @@
 		</Dialog.Content>
 	</Dialog.Root>
 </div>
-

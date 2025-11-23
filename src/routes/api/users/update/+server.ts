@@ -13,7 +13,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		const supabase = createClient(cookies);
 
 		// Update the user
-		const { data, error, count } = await supabase
+		const { data, error } = await supabase
 			.from('users')
 			.update({
 				status,
@@ -46,4 +46,3 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		return json({ error: 'Internal server error' }, { status: 500 });
 	}
 };
-

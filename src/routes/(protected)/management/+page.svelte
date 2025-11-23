@@ -19,6 +19,7 @@
 	import { PieChart } from 'layerchart';
 	import { invalidateAll } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
+	import { onMount, onDestroy } from 'svelte';
 
 	type PendingUser = {
 		id: string;
@@ -31,6 +32,29 @@
 	};
 
 	let { data }: { data: PageData } = $props();
+
+	// Auto-refresh interval (30 seconds)
+	let refreshInterval: ReturnType<typeof setInterval> | null = $state(null);
+	let isRefreshing = $state(false);
+
+	// Set up auto-refresh
+	onMount(() => {
+		refreshInterval = setInterval(async () => {
+			isRefreshing = true;
+			try {
+				await invalidateAll();
+			} finally {
+				isRefreshing = false;
+			}
+		}, 30000); // Refresh every 30 seconds
+	});
+
+	// Clean up interval on destroy
+	onDestroy(() => {
+		if (refreshInterval) {
+			clearInterval(refreshInterval);
+		}
+	});
 
 	// Dialog state for editing pending users
 	let editDialogOpen = $state(false);
@@ -99,8 +123,7 @@
 			toast.success('User updated successfully');
 			closeEditDialog();
 			await invalidateAll(); // Refresh data
-		} catch (error) {
-			console.error('Error updating user:', error);
+		} catch {
 			toast.error('Failed to update user');
 		} finally {
 			isSaving = false;
@@ -140,7 +163,6 @@
 			closeRequestDialog();
 			await invalidateAll();
 		} catch (error) {
-			console.error('Error approving request:', error);
 			toast.error(error instanceof Error ? error.message : 'Failed to approve request');
 		} finally {
 			isProcessingRequest = false;
@@ -168,7 +190,6 @@
 			closeRequestDialog();
 			await invalidateAll();
 		} catch (error) {
-			console.error('Error rejecting request:', error);
 			toast.error(error instanceof Error ? error.message : 'Failed to reject request');
 		} finally {
 			isProcessingRequest = false;
@@ -258,8 +279,18 @@
 <div class="p-4 md:p-6 lg:p-8">
 	<!-- Page Header -->
 	<div class="mb-6">
-		<h1 class="text-3xl font-bold text-foreground">Dashboard</h1>
-		<p class="text-sm text-muted-foreground">Overview of bank accounts and pending requests</p>
+		<div class="flex items-center justify-between">
+			<div>
+				<h1 class="text-3xl font-bold text-foreground">Dashboard</h1>
+				<p class="text-sm text-muted-foreground">Overview of bank accounts and pending requests</p>
+			</div>
+			{#if isRefreshing}
+				<div class="flex items-center gap-2 text-xs text-muted-foreground">
+					<div class="size-2 animate-pulse rounded-full bg-primary"></div>
+					<span>Refreshing...</span>
+				</div>
+			{/if}
+		</div>
 	</div>
 
 	<!-- Metric Cards -->
@@ -311,7 +342,10 @@
 			<div class="flex flex-col items-center gap-10 md:flex-row md:items-start">
 				<!-- Donut Chart -->
 				<div class="relative flex size-72 items-center justify-center">
-					<Chart.Container config={chartConfig} class="mx-auto aspect-square h-96 w-96 max-h-[250px]">
+					<Chart.Container
+						config={chartConfig}
+						class="mx-auto aspect-square h-96 max-h-[250px] w-96"
+					>
 						<PieChart
 							data={chartData}
 							key="name"
@@ -334,8 +368,8 @@
 					</div>
 				</div>
 				<!-- Legend -->
-				<div class="flex-1 space-y-3 w-full">
-					{#each accountDistribution as item}
+				<div class="w-full flex-1 space-y-3">
+					{#each accountDistribution as item (item.name)}
 						<div
 							class="flex items-center justify-between rounded-lg border border-border bg-background p-4"
 						>
@@ -370,22 +404,24 @@
 			<Card.Content>
 				{#if pendingUsers.length > 0}
 					<div class="max-h-[250px] space-y-0 overflow-y-auto">
-						{#each pendingUsers as user}
+						{#each pendingUsers as user (user.id)}
 							<button
 								type="button"
-								class="flex w-full items-center justify-between border-b border-border px-4 py-4 last:border-0 bg-background hover:bg-accent/50 transition-colors cursor-pointer text-left"
+								class="flex w-full cursor-pointer items-center justify-between border-b border-border bg-background px-4 py-4 text-left transition-colors last:border-0 hover:bg-accent/50"
 								onclick={() => openUserDialog(user)}
 							>
-								<div class="flex-1 min-w-0">
+								<div class="min-w-0 flex-1">
 									<p class="font-medium text-foreground">{user.fullName}</p>
 									<p class="text-sm text-muted-foreground">{user.email}</p>
 								</div>
-								<div class="ml-4 shrink-0 flex flex-col items-end">
+								<div class="ml-4 flex shrink-0 flex-col items-end">
 									<div class="mb-2 flex items-center gap-2">
 										<ClockIcon class="size-3 text-muted-foreground" />
 										<span class="text-xs text-muted-foreground">{user.timeAgo}</span>
 									</div>
-									<span class="rounded-md px-2.5 py-1 text-xs font-medium {getUserTypeColor(user.type)}">
+									<span
+										class="rounded-md px-2.5 py-1 text-xs font-medium {getUserTypeColor(user.type)}"
+									>
 										{formatUserType(user.type)}
 									</span>
 								</div>
@@ -436,13 +472,13 @@
 					</div>
 				{:else}
 					<div class="max-h-[250px] space-y-0 overflow-y-auto">
-						{#each pendingRequests as request}
+						{#each pendingRequests as request (request.id)}
 							<button
 								type="button"
-								class="flex w-full items-center justify-between border-b border-border px-4 py-4 text-left last:border-0 bg-background hover:bg-accent/50 transition-colors cursor-pointer"
+								class="flex w-full cursor-pointer items-center justify-between border-b border-border bg-background px-4 py-4 text-left transition-colors last:border-0 hover:bg-accent/50"
 								onclick={() => openRequestDialog(request)}
 							>
-								<div class="flex-1 min-w-0">
+								<div class="min-w-0 flex-1">
 									<p class="font-medium text-foreground">{request.merchantName}</p>
 									<div class="mt-1 flex items-center gap-2">
 										<ClockIcon class="size-3 text-muted-foreground" />
@@ -504,7 +540,7 @@
 						<div class="mb-3">
 							<div class="text-sm font-medium text-muted-foreground">Status</div>
 							<div class="mt-2 flex gap-2">
-								{#each statusOptions as option}
+								{#each statusOptions as option (option.value)}
 									<button
 										type="button"
 										class="flex-1 rounded-md border px-3 py-2 text-sm transition-colors {editingStatus ===
@@ -523,7 +559,7 @@
 						<div>
 							<div class="text-sm font-medium text-muted-foreground">User Type</div>
 							<div class="mt-2 grid grid-cols-2 gap-2">
-								{#each typeOptions as option}
+								{#each typeOptions as option (option.value)}
 									<button
 										type="button"
 										class="rounded-md border px-3 py-2 text-sm transition-colors {editingType ===

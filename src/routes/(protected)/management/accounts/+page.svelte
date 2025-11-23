@@ -91,13 +91,11 @@
 		mappedToUserId: null as string | null
 	});
 	let isCreating = $state(false);
-	
+
 	// User can potentially reveal data (we'll check permissions on API call)
 	// Management, Merchant, and Holder all have different reveal permissions
 	const canAttemptReveal = $derived(
-		data.user.type === 'management' || 
-		data.user.type === 'merchant' || 
-		data.user.type === 'holder'
+		data.user.type === 'management' || data.user.type === 'merchant' || data.user.type === 'holder'
 	);
 
 	// Auto-clear merchant mapping when status is changed to unmapped
@@ -232,11 +230,11 @@
 		// Use logged-in user's details
 		const currentUserId = data.user.id;
 		const currentUserType = data.user.type;
-		
+
 		// Map user type to added_by_type
 		// Only management and holder can add accounts (not merchant)
 		const addedByType = currentUserType === 'management' ? 'management' : 'holder';
-		
+
 		newAccountForm = {
 			bankName: '',
 			accountHolderName: '',
@@ -391,12 +389,13 @@
 	// Apply filters - make API call
 	async function applyFilters() {
 		isLoading = true;
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity
 		const params = new URLSearchParams();
-		
+
 		if (statusFilter !== 'all') {
 			params.set('status', statusFilter);
 		}
-		
+
 		if (addedByFilter !== 'all') {
 			params.set('addedBy', addedByFilter);
 		}
@@ -511,7 +510,7 @@
 
 	// Reset pagination and mobile scroll when search changes
 	$effect(() => {
-		searchQuery;
+		void searchQuery; // Track searchQuery changes
 		currentPage = 0;
 		mobileItemsToShow = 10;
 	});
@@ -581,7 +580,7 @@
 	<!-- Search and Filters -->
 	<div class="flex flex-col gap-4 md:flex-row md:items-center">
 		<div class="relative flex-1">
-			<SearchIcon class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+			<SearchIcon class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
 			<Input
 				placeholder="Search accounts by holder, bank, account number..."
 				bind:value={searchQuery}
@@ -601,7 +600,7 @@
 			</Popover.Trigger>
 			<Popover.Content class="w-[180px] p-0">
 				<div class="flex flex-col">
-					{#each statusOptions as option}
+					{#each statusOptions as option (option.value)}
 						<button
 							type="button"
 							class="flex items-center gap-2 px-4 py-2 text-sm hover:bg-accent"
@@ -629,7 +628,7 @@
 			</Popover.Trigger>
 			<Popover.Content class="w-[180px] p-0">
 				<div class="flex flex-col">
-					{#each addedByOptions as option}
+					{#each addedByOptions as option (option.value)}
 						<button
 							type="button"
 							class="flex items-center gap-2 px-4 py-2 text-sm hover:bg-accent"
@@ -962,11 +961,15 @@
 						<div class="grid grid-cols-2 gap-4">
 							<div>
 								<div class="text-sm font-medium text-muted-foreground">Created</div>
-								<div class="mt-1 text-xs text-foreground">{formatDate(selectedAccount.createdAt)}</div>
+								<div class="mt-1 text-xs text-foreground">
+									{formatDate(selectedAccount.createdAt)}
+								</div>
 							</div>
 							<div>
 								<div class="text-sm font-medium text-muted-foreground">Last Updated</div>
-								<div class="mt-1 text-xs text-foreground">{formatDate(selectedAccount.updatedAt)}</div>
+								<div class="mt-1 text-xs text-foreground">
+									{formatDate(selectedAccount.updatedAt)}
+								</div>
 							</div>
 						</div>
 					</div>
@@ -978,7 +981,7 @@
 						<div class="mb-4">
 							<div class="mb-2 text-sm font-medium text-muted-foreground">Change Status</div>
 							<div class="flex gap-2">
-								{#each statusOptions.filter((s) => s.value !== 'all') as option}
+								{#each statusOptions.filter((s) => s.value !== 'all') as option (option.value)}
 									<button
 										type="button"
 										class="flex-1 rounded-md border px-3 py-2 text-sm transition-colors {editingStatus ===
@@ -1066,7 +1069,7 @@
 				</Command.Item>
 
 				<!-- Merchant list -->
-				{#each merchants as merchant}
+				{#each merchants as merchant (merchant.id)}
 					<Command.Item
 						value={merchant.fullName}
 						onSelect={() => selectMerchant(merchant.id)}
@@ -1089,7 +1092,7 @@
 
 	<!-- Add Bank Account Dialog -->
 	<Dialog.Root bind:open={addDialogOpen}>
-		<Dialog.Content class="max-w-xl max-h-[90vh] overflow-y-auto">
+		<Dialog.Content class="max-h-[90vh] max-w-xl overflow-y-auto">
 			<Dialog.Header>
 				<Dialog.Title>Add Bank Account</Dialog.Title>
 				<Dialog.Description>Add a new bank account to the system</Dialog.Description>
@@ -1153,20 +1156,22 @@
 					<!-- svelte-ignore a11y_label_has_associated_control -->
 					<label class="text-sm font-medium">Added By</label>
 					<div class="mt-2 rounded-lg border border-border bg-muted/30 p-4">
-					<div class="flex items-center gap-3">
-						<div class="flex size-10 items-center justify-center rounded-full bg-primary/10">
-							<UserIcon class="size-5 text-primary" />
+						<div class="flex items-center gap-3">
+							<div class="flex size-10 items-center justify-center rounded-full bg-primary/10">
+								<UserIcon class="size-5 text-primary" />
+							</div>
+							<div class="flex-1">
+								<div class="font-medium text-foreground">{data.user.full_name}</div>
+								<div class="text-sm text-muted-foreground">{data.user.email}</div>
+							</div>
+							<span
+								class="rounded-md px-2.5 py-1 text-xs font-medium {getUserTypeColor(
+									data.user.type
+								)}"
+							>
+								{data.user.type.charAt(0).toUpperCase() + data.user.type.slice(1)}
+							</span>
 						</div>
-						<div class="flex-1">
-							<div class="font-medium text-foreground">{data.user.full_name}</div>
-							<div class="text-sm text-muted-foreground">{data.user.email}</div>
-						</div>
-						<span
-							class="rounded-md px-2.5 py-1 text-xs font-medium {getUserTypeColor(data.user.type)}"
-						>
-							{data.user.type.charAt(0).toUpperCase() + data.user.type.slice(1)}
-						</span>
-					</div>
 					</div>
 				</div>
 
@@ -1177,7 +1182,7 @@
 						Status <span class="text-destructive">*</span>
 					</label>
 					<div class="mt-2 flex gap-2">
-						{#each statusOptions.filter((s) => s.value !== 'all') as option}
+						{#each statusOptions.filter((s) => s.value !== 'all') as option (option.value)}
 							<button
 								type="button"
 								class="flex-1 rounded-md border px-3 py-2 text-sm transition-colors {newAccountForm.status ===
@@ -1204,7 +1209,7 @@
 							class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
 						>
 							<option value={null}>Select merchant...</option>
-							{#each merchants as merchant}
+							{#each merchants as merchant (merchant.id)}
 								<option value={merchant.id}>{merchant.fullName}</option>
 							{/each}
 						</select>
@@ -1226,4 +1231,3 @@
 		</Dialog.Content>
 	</Dialog.Root>
 </div>
-

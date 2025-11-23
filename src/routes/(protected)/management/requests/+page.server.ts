@@ -31,10 +31,8 @@ export const load: PageServerLoad = async ({ parent, cookies, url }) => {
 	const supabase = createClient(cookies);
 
 	// Build query with joins
-	let query = supabase
-		.from('account_mapping_requests')
-		.select(
-			`
+	let query = supabase.from('account_mapping_requests').select(
+		`
 			id,
 			merchant_id,
 			bank_account_id,
@@ -48,7 +46,7 @@ export const load: PageServerLoad = async ({ parent, cookies, url }) => {
 			bank_account:bank_accounts(account_holder_name, bank_name, account_number, ifsc_code),
 			reviewed_by:users!account_mapping_requests_reviewed_by_user_id_fkey(full_name)
 		`
-		);
+	);
 
 	// Apply status filter
 	if (statusFilter !== 'all') {
@@ -143,4 +141,3 @@ export const load: PageServerLoad = async ({ parent, cookies, url }) => {
 		}
 	};
 };
-

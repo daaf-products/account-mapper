@@ -10,32 +10,14 @@ export const load: PageServerLoad = async ({ parent, cookies }) => {
 	// Fetch pending users (status = 'pending')
 	// Management users should be able to read all users
 	const query = supabase.from('users').select('id, email, full_name, created_at, type, status');
-	const { data: pendingUsersData, error } = await (query as any)
+	const { data: pendingUsersData } = await (query as any)
 		.eq('status', 'pending')
 		.order('created_at', { ascending: false })
 		.limit(20);
 
-	if (error) {
-		console.error('Error fetching pending users:', error);
-		console.error('Error details:', JSON.stringify(error, null, 2));
-	}
-
-	// Debug: Log first user to check data structure
-	if (pendingUsersData && pendingUsersData.length > 0) {
-		console.log('Sample pending user data:', {
-			id: pendingUsersData[0].id,
-			email: pendingUsersData[0].email,
-			full_name: pendingUsersData[0].full_name,
-			created_at: pendingUsersData[0].created_at,
-			type: pendingUsersData[0].type,
-			status: pendingUsersData[0].status
-		});
-	}
-
 	// Fetch pending mapping requests
-	const { data: pendingRequestsData, error: requestsError } = await (supabase
-		.from('account_mapping_requests')
-		.select(
+	const { data: pendingRequestsData } = await (
+		supabase.from('account_mapping_requests').select(
 			`
 			id,
 			merchant_id,
@@ -46,14 +28,11 @@ export const load: PageServerLoad = async ({ parent, cookies }) => {
 			merchant:users!account_mapping_requests_merchant_id_fkey(full_name, email),
 			bank_account:bank_accounts(account_holder_name, bank_name, account_number, ifsc_code)
 		`
-		)
+		) as any
+	)
 		.eq('status', 'pending')
 		.order('created_at', { ascending: false })
-		.limit(20) as any);
-
-	if (requestsError) {
-		console.error('Error fetching pending requests:', requestsError);
-	}
+		.limit(20);
 
 	// Fetch bank account statistics
 	let accountDistribution = {
@@ -68,49 +47,37 @@ export const load: PageServerLoad = async ({ parent, cookies }) => {
 			.from('bank_accounts')
 			.select('status') as any);
 
-		if (accountsError) {
-			console.error('Error fetching bank accounts:', accountsError);
-			console.error('Error details:', JSON.stringify(accountsError, null, 2));
-		} else {
-			// Debug: Log bank accounts data
-			console.log('Bank accounts data:', {
-				count: bankAccountsData?.length || 0,
-				sample: bankAccountsData?.slice(0, 3)
-			});
-
+		if (!accountsError && bankAccountsData) {
 			// Calculate account distribution statistics
-			const totalAccounts = bankAccountsData?.length || 0;
-			const mappedCount = bankAccountsData?.filter((acc: any) => acc.status === 'mapped').length || 0;
-			const unmappedCount = bankAccountsData?.filter((acc: any) => acc.status === 'unmapped').length || 0;
-			const parkedCount = bankAccountsData?.filter((acc: any) => acc.status === 'parked').length || 0;
-
-			console.log('Account distribution calculated:', {
-				total: totalAccounts,
-				mapped: mappedCount,
-				unmapped: unmappedCount,
-				parked: parkedCount
-			});
+			const totalAccounts = bankAccountsData.length || 0;
+			const mappedCount =
+				bankAccountsData.filter((acc: any) => acc.status === 'mapped').length || 0;
+			const unmappedCount =
+				bankAccountsData.filter((acc: any) => acc.status === 'unmapped').length || 0;
+			const parkedCount =
+				bankAccountsData.filter((acc: any) => acc.status === 'parked').length || 0;
 
 			accountDistribution = {
 				total: totalAccounts,
 				mapped: {
 					count: mappedCount,
-					percentage: totalAccounts > 0 ? Math.round((mappedCount / totalAccounts) * 100 * 10) / 10 : 0
+					percentage:
+						totalAccounts > 0 ? Math.round((mappedCount / totalAccounts) * 100 * 10) / 10 : 0
 				},
 				unmapped: {
 					count: unmappedCount,
-					percentage: totalAccounts > 0 ? Math.round((unmappedCount / totalAccounts) * 100 * 10) / 10 : 0
+					percentage:
+						totalAccounts > 0 ? Math.round((unmappedCount / totalAccounts) * 100 * 10) / 10 : 0
 				},
 				parked: {
 					count: parkedCount,
-					percentage: totalAccounts > 0 ? Math.round((parkedCount / totalAccounts) * 100 * 10) / 10 : 0
+					percentage:
+						totalAccounts > 0 ? Math.round((parkedCount / totalAccounts) * 100 * 10) / 10 : 0
 				}
 			};
-
-			console.log('Final accountDistribution:', accountDistribution);
 		}
-	} catch (err) {
-		console.error('Exception fetching bank accounts:', err);
+	} catch {
+		// Silently handle errors
 	}
 
 	// Format pending users with time ago
@@ -194,4 +161,3 @@ export const load: PageServerLoad = async ({ parent, cookies }) => {
 		accountDistribution
 	};
 };
-

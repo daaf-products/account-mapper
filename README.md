@@ -224,9 +224,11 @@ This directory contains SQL migration scripts for the Account Mapper application
 ### Migration Files
 
 #### 001_drop_everything.sql
+
 **Purpose:** Drops all database objects (tables, functions, triggers, policies)
 
 **When to use:**
+
 - Complete database reset
 - Starting fresh in development
 - Before running migrations from scratch
@@ -244,9 +246,11 @@ psql "your_connection_string" -f 001_drop_everything.sql
 ---
 
 #### 002_create_schema.sql
+
 **Purpose:** Creates the complete database schema
 
 **Includes:**
+
 - ✅ ENUM types (user_type, user_status, bank_account_status, added_by_type)
 - ✅ Tables (users, bank_accounts)
 - ✅ Indexes for performance
@@ -256,6 +260,7 @@ psql "your_connection_string" -f 001_drop_everything.sql
 - ✅ Permissions
 
 **Business Rules Enforced:**
+
 1. Only Management and Holder users can ADD bank accounts
 2. Accounts can only be MAPPED to Merchant users
 3. Management users can read/update all data
@@ -270,15 +275,18 @@ psql "your_connection_string" -f 002_create_schema.sql
 ---
 
 #### 003_seed_data.sql
+
 **Purpose:** Populates database with test data for development
 
 **Includes:**
+
 - 📝 Instructions for seeding users (via Supabase Auth)
 - 15 bank accounts with various statuses
 - Mix of accounts added by holders and management
 - Accounts mapped to different merchants
 
 **Note:** Users must exist before running this. Create users via:
+
 - Supabase Dashboard (Authentication > Users)
 - API calls to `auth.admin.createUser()`
 - Your app's registration flow
@@ -346,12 +354,14 @@ npx supabase db execute --remote -f supabase/migrations/002_create_schema.sql
 ### Schema Overview
 
 #### Users Table
+
 - **Purpose:** Stores user profiles and metadata
 - **Types:** unassigned, merchant, holder, management
 - **Statuses:** pending, approved, suspended
 - **Auth Integration:** Linked to Supabase Auth via trigger
 
 #### Bank Accounts Table
+
 - **Purpose:** Stores bank account information
 - **Statuses:** mapped, unmapped, parked
 - **Added By:** management, holder
@@ -397,16 +407,20 @@ SELECT tablename, policyname FROM pg_policies;
 ### Troubleshooting
 
 #### "relation already exists" error
+
 - Run `001_drop_everything.sql` first to clean up
 
 #### "type already exists" error
+
 - Run `001_drop_everything.sql` to drop all ENUMs
 
 #### "no users found" when seeding
+
 - Create users via Supabase Auth first
 - Update user types: `UPDATE public.users SET type = 'management' WHERE email = 'admin@example.com'`
 
 #### RLS blocking queries
+
 - Check your JWT token has the correct user ID
 - Verify user type is set correctly in public.users
 - Use service role key for admin operations
@@ -415,17 +429,18 @@ SELECT tablename, policyname FROM pg_policies;
 
 ### Migration History
 
-| Version | Date | Description |
-|---------|------|-------------|
-| 003 | 2025-11-18 | Clean consolidated setup with seed data |
-| 002 | 2025-11-18 | Complete schema with users + bank accounts |
-| 001 | 2025-11-18 | Drop everything script |
+| Version | Date       | Description                                |
+| ------- | ---------- | ------------------------------------------ |
+| 003     | 2025-11-18 | Clean consolidated setup with seed data    |
+| 002     | 2025-11-18 | Complete schema with users + bank accounts |
+| 001     | 2025-11-18 | Drop everything script                     |
 
 ---
 
 ### Support
 
 For issues or questions:
+
 1. Check Supabase logs: `npx supabase logs --local`
 2. Review RLS policies in Supabase Dashboard
 3. Test queries in SQL Editor with different user contexts

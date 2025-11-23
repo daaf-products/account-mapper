@@ -29,10 +29,8 @@ export const load: PageServerLoad = async ({ parent, cookies, url }) => {
 	const supabase = createClient(cookies);
 
 	// Build query with joins to get user names
-	let query = supabase
-		.from('bank_accounts')
-		.select(
-			`
+	let query = supabase.from('bank_accounts').select(
+		`
 			id,
 			account_holder_name,
 			bank_name,
@@ -47,7 +45,7 @@ export const load: PageServerLoad = async ({ parent, cookies, url }) => {
 			added_by:users!bank_accounts_added_by_user_id_fkey(full_name),
 			mapped_to:users!bank_accounts_mapped_to_user_id_fkey(full_name)
 		`
-		);
+	);
 
 	// Apply filters
 	if (statusFilter !== 'all') {
@@ -128,4 +126,3 @@ export const load: PageServerLoad = async ({ parent, cookies, url }) => {
 		}
 	};
 };
-
