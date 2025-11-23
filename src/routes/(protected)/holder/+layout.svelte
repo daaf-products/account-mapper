@@ -7,7 +7,7 @@
 	import MenuIcon from '@lucide/svelte/icons/menu';
 	import LayoutDashboardIcon from '@lucide/svelte/icons/layout-dashboard';
 	import WalletIcon from '@lucide/svelte/icons/wallet';
-	import BuildingIcon from '@lucide/svelte/icons/building';
+	import DownloadIcon from '@lucide/svelte/icons/download';
 	import BellIcon from '@lucide/svelte/icons/bell';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import { page } from '$app/stores';
@@ -18,10 +18,10 @@
 	let isLoading = $state(false);
 
 	const navItems = [
-		{ href: '/merchant', label: 'Dashboard', icon: LayoutDashboardIcon },
-		{ href: '/merchant/accounts', label: 'Accounts', icon: WalletIcon },
-		{ href: '/merchant/mapped', label: 'Mapped', icon: BuildingIcon },
-		{ href: '/merchant/notifications', label: 'Notifications', icon: BellIcon }
+		{ href: '/holder', label: 'Dashboard', icon: LayoutDashboardIcon },
+		{ href: '/holder/accounts', label: 'Accounts', icon: WalletIcon },
+		{ href: '/holder/apk', label: 'APK Setup', icon: DownloadIcon },
+		{ href: '/holder/notifications', label: 'Notifications', icon: BellIcon }
 	];
 
 	// Close drawer when route changes
@@ -41,8 +41,8 @@
 				<div class="flex items-center gap-2">
 					<img src="/logo.svg" alt="Account Mapper" class="size-8" />
 					<div>
-						<div class="font-semibold text-foreground">Merchant Portal</div>
-						<div class="text-xs text-muted-foreground">Bank Account Management</div>
+						<div class="font-semibold text-foreground">Account Holder</div>
+						<div class="text-xs text-muted-foreground">Bank Account Portal</div>
 					</div>
 				</div>
 			</div>
@@ -106,7 +106,7 @@
 				<div class="rounded-lg border border-border bg-card p-2 shadow-sm">
 					<img src="/logo.svg" alt="Account Mapper" class="size-6" />
 				</div>
-				<span class="font-semibold">Merchant Portal</span>
+				<span class="font-semibold">Account Holder</span>
 			</div>
 			<Button variant="ghost" size="icon" onclick={() => (drawerOpen = true)}>
 				<MenuIcon class="size-5" />
@@ -135,7 +135,7 @@
 							<img src="/logo.svg" alt="Account Mapper" class="size-6" />
 						</div>
 						<div>
-							<Drawer.Title class="text-lg">Merchant Portal</Drawer.Title>
+							<Drawer.Title class="text-lg">Account Holder</Drawer.Title>
 						</div>
 					</div>
 				</Drawer.Header>
@@ -189,3 +189,4 @@
 		</Drawer.Portal>
 	</Drawer.Root>
 </div>
+
